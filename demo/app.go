@@ -6,17 +6,17 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ISeekFree/AtlasGo/common"
+	demov1 "github.com/ISeekFree/AtlasGo/demo/gen/demo/v1"
+	clawgrpc "github.com/ISeekFree/AtlasGo/integrations/grpc"
+	clawmongo "github.com/ISeekFree/AtlasGo/integrations/mongo"
+	clawredis "github.com/ISeekFree/AtlasGo/integrations/redis"
+	"github.com/ISeekFree/AtlasGo/web"
 	"github.com/gin-gonic/gin"
 	goredis "github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc"
-	"iseekfree.com/common/sdk/gomvc/common"
-	demov1 "iseekfree.com/common/sdk/gomvc/demo/gen/demo/v1"
-	clawgrpc "iseekfree.com/common/sdk/gomvc/grpc"
-	clawmongo "iseekfree.com/common/sdk/gomvc/mongo"
-	clawredis "iseekfree.com/common/sdk/gomvc/redis"
-	"iseekfree.com/common/sdk/gomvc/web"
 )
 
 type optionalClients struct {

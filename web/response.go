@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ISeekFree/AtlasGo/common"
 	"github.com/gin-gonic/gin"
-	"iseekfree.com/common/sdk/gomvc/common"
 )
 
 func (s *SDK) ResponseMiddleware() gin.HandlerFunc {

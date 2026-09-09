@@ -1,6 +1,8 @@
-# claw-sdk-gomvc demo
+# AtlasGo demo
 
-This demo validates the SDK without publishing anything to GitHub or another module registry. It uses local `replace` directives to reference the SDK modules in this repository.
+This demo validates the SDK using the public `github.com/ISeekFree/AtlasGo` module paths. Its `go.mod` uses local `replace` directives so contributors always exercise the current checkout; consumers should install the GitHub modules directly.
+
+The examples use `@latest`; for the first release, publish the root `v0.1.0` tag and the prefixed integration tags (`integrations/mongo/v0.1.0`, `integrations/redis/v0.1.0`, and `integrations/grpc/v0.1.0`) before running these commands.
 
 ## Run
 
@@ -32,14 +34,10 @@ _u_=u1;_d_=app.demo;_perms_=demo:read
 
 ## Web-only integration
 
-In another local project:
+In another project:
 
-```go
-module your-service
-
-require iseekfree.com/common/sdk/gomvc v0.0.0
-
-replace iseekfree.com/common/sdk/gomvc => /Users/geekbruce/Home/RootProjects/claw/claw-sdk-gomvc
+```bash
+go get github.com/ISeekFree/AtlasGo@latest
 ```
 
 Then install the Gin middleware:
@@ -69,10 +67,8 @@ sdk := web.New(web.Options{
 
 Add only when the project needs MongoDB:
 
-```go
-require iseekfree.com/common/sdk/gomvc/mongo v0.0.0
-
-replace iseekfree.com/common/sdk/gomvc/mongo => /Users/geekbruce/Home/RootProjects/claw/claw-sdk-gomvc/integrations/mongo
+```bash
+go get github.com/ISeekFree/AtlasGo/integrations/mongo@latest
 ```
 
 Use `mongo.LoadConfig("config.yaml")` to read the integrating project's `claw.mongo` section; see [config.yaml](config.yaml) for a single-cluster, multi-database example. Register entities in Go, then keep the returned registry in your application container:
@@ -116,10 +112,8 @@ registry, err := mongo.Connect(ctx, mongo.Options{
 
 Add only when the project needs Redis:
 
-```go
-require iseekfree.com/common/sdk/gomvc/redis v0.0.0
-
-replace iseekfree.com/common/sdk/gomvc/redis => /Users/geekbruce/Home/RootProjects/claw/claw-sdk-gomvc/integrations/redis
+```bash
+go get github.com/ISeekFree/AtlasGo/integrations/redis@latest
 ```
 
 Use `redis.LoadConfig("config.yaml")`, then pass the result to `redis.NewClient`. The `claw.redis` section supports host, port, database, credentials, key prefix, common timeouts, and Java-style pool settings:
@@ -136,10 +130,8 @@ if config.IsEnabled() {
 
 Add only when the project needs gRPC:
 
-```go
-require iseekfree.com/common/sdk/gomvc/grpc v0.0.0
-
-replace iseekfree.com/common/sdk/gomvc/grpc => /Users/geekbruce/Home/RootProjects/claw/claw-sdk-gomvc/integrations/grpc
+```bash
+go get github.com/ISeekFree/AtlasGo/integrations/grpc@latest
 ```
 
 `clawgrpc.LoadConfig("config.yaml")` reads `claw.grpc.server` and all named entries under `claw.grpc.client.channels`. The demo defines `local`, `account-service`, and `order-service`; connections are created lazily when their names are requested:

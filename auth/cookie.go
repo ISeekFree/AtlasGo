@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"iseekfree.com/common/sdk/gomvc/common"
+	"github.com/ISeekFree/AtlasGo/common"
 )
 
 const (

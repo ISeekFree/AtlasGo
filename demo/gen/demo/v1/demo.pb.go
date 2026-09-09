@@ -230,7 +230,7 @@ const file_demo_v1_demo_proto_rawDesc = "" +
 	"\vpermissions\x18\x03 \x03(\tR\vpermissions2\xa0\x01\n" +
 	"\vDemoService\x12=\n" +
 	"\x04Echo\x12\x19.claw.demo.v1.EchoRequest\x1a\x1a.claw.demo.v1.EchoResponse\x12R\n" +
-	"\vCurrentUser\x12 .claw.demo.v1.CurrentUserRequest\x1a!.claw.demo.v1.CurrentUserResponseB8Z6iseekfree.com/common/sdk/gomvc/demo/gen/demo/v1;demov1b\x06proto3"
+	"\vCurrentUser\x12 .claw.demo.v1.CurrentUserRequest\x1a!.claw.demo.v1.CurrentUserResponseB6Z4github.com/ISeekFree/AtlasGo/demo/gen/demo/v1;demov1b\x06proto3"
 
 var (
 	file_demo_v1_demo_proto_rawDescOnce sync.Once

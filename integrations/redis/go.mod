@@ -1,4 +1,4 @@
-module iseekfree.com/common/sdk/gomvc/redis
+module github.com/ISeekFree/AtlasGo/integrations/redis
 
 go 1.23.0
 

@@ -18,7 +18,7 @@ func main() {
 		_ = cleanup(context.Background())
 	}()
 
-	log.Printf("claw-sdk-gomvc demo listening on %s", config.HTTPAddr)
+	log.Printf("AtlasGo demo listening on %s", config.HTTPAddr)
 	if err := engine.Run(config.HTTPAddr); err != nil {
 		log.Fatal(err)
 	}

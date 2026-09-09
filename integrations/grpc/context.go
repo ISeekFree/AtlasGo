@@ -3,7 +3,7 @@ package clawgrpc
 import (
 	"context"
 
-	"iseekfree.com/common/sdk/gomvc/auth"
+	"github.com/ISeekFree/AtlasGo/auth"
 )
 
 const (

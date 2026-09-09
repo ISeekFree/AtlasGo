@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package claw.demo.v1;
 
-option go_package = "iseekfree.com/common/sdk/gomvc/demo/gen/demo/v1;demov1";
+option go_package = "github.com/ISeekFree/AtlasGo/demo/gen/demo/v1;demov1";
 
 // DemoService demonstrates authenticated unary calls through the SDK's
 // WebContext-to-gRPC metadata propagation.

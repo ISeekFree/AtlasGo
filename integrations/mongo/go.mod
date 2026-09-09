@@ -1,4 +1,4 @@
-module iseekfree.com/common/sdk/gomvc/mongo
+module github.com/ISeekFree/AtlasGo/integrations/mongo
 
 go 1.23.0
 

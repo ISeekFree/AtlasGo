@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	clawmongo "iseekfree.com/common/sdk/gomvc/mongo"
-	clawredis "iseekfree.com/common/sdk/gomvc/redis"
+	clawmongo "github.com/ISeekFree/AtlasGo/integrations/mongo"
+	clawredis "github.com/ISeekFree/AtlasGo/integrations/redis"
 )
 
 const (

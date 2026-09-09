@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ISeekFree/AtlasGo/auth"
 	"github.com/gin-gonic/gin"
-	"iseekfree.com/common/sdk/gomvc/auth"
 )
 
 func TestSDKWrapsAndAuthenticatesGinRoutes(t *testing.T) {

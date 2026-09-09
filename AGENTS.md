@@ -1,4 +1,4 @@
-# claw-sdk-gomvc Agent Guide
+# AtlasGo Agent Guide
 
 This is the canonical coding-agent guide for the repository. Read [Architecture.md](Architecture.md) before making cross-module changes.
 
@@ -6,11 +6,11 @@ This is the canonical coding-agent guide for the repository. Read [Architecture.
 
 | Path | Go module | Responsibility |
 | --- | --- | --- |
-| `.` | `iseekfree.com/common/sdk/gomvc` | `common`, auth contracts, Gin context/auth/response middleware. |
-| `integrations/mongo` | `iseekfree.com/common/sdk/gomvc/mongo` | MongoDB configuration, cluster/datastore registry, entity routing, indexes, and CRUD. |
-| `integrations/redis` | `iseekfree.com/common/sdk/gomvc/redis` | Redis configuration, client creation, pool mapping, and key prefixes. |
-| `integrations/grpc` | `iseekfree.com/common/sdk/gomvc/grpc` | gRPC configuration, named channels, auth propagation, and server/client interceptors. |
-| `demo` | `iseekfree.com/common/sdk/gomvc/demo` | Local integration example and validation only. |
+| `.` | `github.com/ISeekFree/AtlasGo` | `common`, auth contracts, Gin context/auth/response middleware. |
+| `integrations/mongo` | `github.com/ISeekFree/AtlasGo/integrations/mongo` | MongoDB configuration, cluster/datastore registry, entity routing, indexes, and CRUD. |
+| `integrations/redis` | `github.com/ISeekFree/AtlasGo/integrations/redis` | Redis configuration, client creation, pool mapping, and key prefixes. |
+| `integrations/grpc` | `github.com/ISeekFree/AtlasGo/integrations/grpc` | gRPC configuration, named channels, auth propagation, and server/client interceptors. |
+| `demo` | `github.com/ISeekFree/AtlasGo/demo` | Local integration example and validation only. |
 
 ## Non-Negotiable Boundaries
 
@@ -66,6 +66,6 @@ Do not couple the three loaders or make the optional modules depend on one anoth
 - Named gRPC channels other than `local` are lazy and may point at services that are not running during demo tests.
 - `demo/proto` is the source of truth for demo gRPC contracts. Commit generated files under `demo/gen`; do not restore hand-written `grpc.ServiceDesc` stubs.
 - When a proto changes, run `./protoc.sh` from the repository root, or `go generate ./...` from `demo`; both use the same generator path. Exercise every demo RPC through its generated client in tests.
-- The demo uses local `replace` directives; do not assume modules are published.
+- The demo uses local `replace` directives to exercise the current checkout; public examples use the GitHub module paths.
 - External Redis/Mongo checks remain opt-in with `CLAW_DEMO_EXTERNAL_TEST=1`.
 - Run `./build.sh` before completing broad SDK changes.

@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	clawgrpc "iseekfree.com/common/sdk/gomvc/grpc"
-	clawmongo "iseekfree.com/common/sdk/gomvc/mongo"
-	clawredis "iseekfree.com/common/sdk/gomvc/redis"
+	clawgrpc "github.com/ISeekFree/AtlasGo/integrations/grpc"
+	clawmongo "github.com/ISeekFree/AtlasGo/integrations/mongo"
+	clawredis "github.com/ISeekFree/AtlasGo/integrations/redis"
 )
 
 type Config struct {

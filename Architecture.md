@@ -1,10 +1,10 @@
-# Claw SDK GoMVC Architecture
+# AtlasGo GoMVC Architecture
 
 ## Baseline
 
 - Runtime target: Go 1.23.
 - Web framework: Gin.
-- Module root: `iseekfree.com/common/sdk/gomvc`.
+- Module root: `github.com/ISeekFree/AtlasGo`.
 - Optional integrations are separate Go modules under `integrations/` so consumers only add the dependencies they use.
 
 ## Modules
@@ -60,7 +60,7 @@ MongoDB and Redis are not imported by the core module:
 - Entity-level `CompoundIndex` is the Go counterpart of Morphia `@Indexes`; it preserves key order/direction and supports unique, sparse, hidden, and TTL options.
 - `integrations/redis` exposes `LoadConfig`, `NewClient`, and `KeyBuilder`; `claw.redis` maps Java-style timeout and pool settings to go-redis.
 
-Consumers add these modules only when needed and use local `replace` directives while the SDK remains unpublished.
+Consumers add these modules only when needed from `github.com/ISeekFree/AtlasGo/integrations/...`. Local `replace` directives are reserved for development inside this repository.
 
 ## gRPC Flow
 
@@ -90,4 +90,4 @@ The `demo` module validates:
 - generated protobuf `Echo` and `CurrentUser` RPC usage through the configured `local` channel;
 - WebContext customization through `demoTraceId`;
 - optional MongoDB and Redis setup paths and opt-in external basic operation tests;
-- local `replace`-based consumer integration instructions.
+- GitHub-based consumer installation instructions; local `replace` directives are used only for repository development.

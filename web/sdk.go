@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ISeekFree/AtlasGo/auth"
+	"github.com/ISeekFree/AtlasGo/common"
 	"github.com/gin-gonic/gin"
-	"iseekfree.com/common/sdk/gomvc/auth"
-	"iseekfree.com/common/sdk/gomvc/common"
 )
 
 type SDK struct {

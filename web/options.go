@@ -1,6 +1,6 @@
 package web
 
-import "iseekfree.com/common/sdk/gomvc/auth"
+import "github.com/ISeekFree/AtlasGo/auth"
 
 type Options struct {
 	Enabled            *bool

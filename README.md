@@ -1,4 +1,4 @@
-# claw-sdk-gomvc
+# AtlasGo GoMVC SDK
 
 Go + Gin SDK for Claw-style WebMVC services. It mirrors the Java `claw-sdk-webmvc` baseline with a Go module layout:
 
@@ -8,17 +8,26 @@ Go + Gin SDK for Claw-style WebMVC services. It mirrors the Java `claw-sdk-webmv
 - Optional integrations as separate modules: MongoDB with cluster/datastore/entity routing and auto-index, Redis with YAML pool mapping, and gRPC with multiple named service channels.
 - Local demo project with one combined `config.yaml` for SDK validation and integration examples.
 
-The SDK is intentionally local-module friendly. It does not require publishing to GitHub or any registry; consumers can use `replace` directives.
+The SDK source is hosted at [github.com/ISeekFree/AtlasGo](https://github.com/ISeekFree/AtlasGo). After the initial `v0.1.0` release tags are pushed, consumers can install the core SDK or only the optional integration modules they need:
+
+```bash
+go get github.com/ISeekFree/AtlasGo@latest
+go get github.com/ISeekFree/AtlasGo/integrations/mongo@latest
+go get github.com/ISeekFree/AtlasGo/integrations/redis@latest
+go get github.com/ISeekFree/AtlasGo/integrations/grpc@latest
+```
+
+The repository uses nested Go modules. For a release, tag the root module as `v0.1.0` and each optional module with its directory prefix (`integrations/mongo/v0.1.0`, `integrations/redis/v0.1.0`, and `integrations/grpc/v0.1.0`). The gRPC module requires the matching root tag.
 
 ## Modules
 
 | Path | Go module | Role |
 | --- | --- | --- |
-| `.` | `iseekfree.com/common/sdk/gomvc` | Core SDK: common DTOs/errors, auth, and Gin middleware. |
-| `integrations/mongo` | `iseekfree.com/common/sdk/gomvc/mongo` | MongoDB config loader, registry, entity routing/indexes, and generic CRUD. |
-| `integrations/redis` | `iseekfree.com/common/sdk/gomvc/redis` | Redis config loader, client options mapping, and key builder. |
-| `integrations/grpc` | `iseekfree.com/common/sdk/gomvc/grpc` | gRPC config loader, named channels, auth context, and interceptors. |
-| `demo` | `iseekfree.com/common/sdk/gomvc/demo` | Local validation app and integration guide. |
+| `.` | `github.com/ISeekFree/AtlasGo` | Core SDK: common DTOs/errors, auth, and Gin middleware. |
+| `integrations/mongo` | `github.com/ISeekFree/AtlasGo/integrations/mongo` | MongoDB config loader, registry, entity routing/indexes, and generic CRUD. |
+| `integrations/redis` | `github.com/ISeekFree/AtlasGo/integrations/redis` | Redis config loader, client options mapping, and key builder. |
+| `integrations/grpc` | `github.com/ISeekFree/AtlasGo/integrations/grpc` | gRPC config loader, named channels, auth context, and interceptors. |
+| `demo` | `github.com/ISeekFree/AtlasGo/demo` | Local validation app and integration guide. |
 
 ## Integration And Configuration Model
 

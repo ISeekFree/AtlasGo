@@ -50,9 +50,9 @@ fi
 protoc \
 	--proto_path=proto \
 	--go_out=. \
-	--go_opt=module=iseekfree.com/common/sdk/gomvc/demo \
+	--go_opt=module=github.com/ISeekFree/AtlasGo/demo \
 	--go-grpc_out=. \
-	--go-grpc_opt=module=iseekfree.com/common/sdk/gomvc/demo \
+	--go-grpc_opt=module=github.com/ISeekFree/AtlasGo/demo \
 	"${proto_files[@]}"
 
 echo "generated Go protobuf code for ${#proto_files[@]} proto file(s)"

@@ -1,17 +1,17 @@
-module iseekfree.com/common/sdk/gomvc/demo
+module github.com/ISeekFree/AtlasGo/demo
 
 go 1.23.0
 
 require (
+	github.com/ISeekFree/AtlasGo v0.1.0
+	github.com/ISeekFree/AtlasGo/integrations/grpc v0.1.0
+	github.com/ISeekFree/AtlasGo/integrations/mongo v0.1.0
+	github.com/ISeekFree/AtlasGo/integrations/redis v0.1.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/redis/go-redis/v9 v9.6.1
 	go.mongodb.org/mongo-driver v1.17.9
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.36.10
-	iseekfree.com/common/sdk/gomvc v0.0.0
-	iseekfree.com/common/sdk/gomvc/grpc v0.0.0
-	iseekfree.com/common/sdk/gomvc/mongo v0.0.0
-	iseekfree.com/common/sdk/gomvc/redis v0.0.0
 )
 
 require (
@@ -53,10 +53,10 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace iseekfree.com/common/sdk/gomvc => ..
+replace github.com/ISeekFree/AtlasGo => ..
 
-replace iseekfree.com/common/sdk/gomvc/grpc => ../integrations/grpc
+replace github.com/ISeekFree/AtlasGo/integrations/grpc => ../integrations/grpc
 
-replace iseekfree.com/common/sdk/gomvc/mongo => ../integrations/mongo
+replace github.com/ISeekFree/AtlasGo/integrations/mongo => ../integrations/mongo
 
-replace iseekfree.com/common/sdk/gomvc/redis => ../integrations/redis
+replace github.com/ISeekFree/AtlasGo/integrations/redis => ../integrations/redis

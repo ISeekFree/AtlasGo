@@ -4,13 +4,13 @@ import (
 	"context"
 	"strings"
 
+	"github.com/ISeekFree/AtlasGo/auth"
+	"github.com/ISeekFree/AtlasGo/web"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
-	"iseekfree.com/common/sdk/gomvc/auth"
-	"iseekfree.com/common/sdk/gomvc/web"
 )
 
 type ServerAuthOptions struct {

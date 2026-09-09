@@ -1,11 +1,11 @@
-module iseekfree.com/common/sdk/gomvc/grpc
+module github.com/ISeekFree/AtlasGo/integrations/grpc
 
 go 1.23.0
 
 require (
+	github.com/ISeekFree/AtlasGo v0.1.0
 	google.golang.org/grpc v1.67.1
 	gopkg.in/yaml.v3 v3.0.1
-	iseekfree.com/common/sdk/gomvc v0.0.0
 )
 
 require (
@@ -38,4 +38,4 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 )
 
-replace iseekfree.com/common/sdk/gomvc => ../..
+replace github.com/ISeekFree/AtlasGo => ../..

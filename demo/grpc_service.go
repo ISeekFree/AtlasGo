@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	demov1 "iseekfree.com/common/sdk/gomvc/demo/gen/demo/v1"
-	clawgrpc "iseekfree.com/common/sdk/gomvc/grpc"
+	demov1 "github.com/ISeekFree/AtlasGo/demo/gen/demo/v1"
+	clawgrpc "github.com/ISeekFree/AtlasGo/integrations/grpc"
 )
 
 type demoServiceServer struct {

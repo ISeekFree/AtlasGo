@@ -1,4 +1,4 @@
-module iseekfree.com/common/sdk/gomvc
+module github.com/ISeekFree/AtlasGo
 
 go 1.23.0
 
