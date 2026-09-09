@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package claw.demo.v1;
+
+option go_package = "iseekfree.com/common/sdk/gomvc/demo/gen/demo/v1;demov1";
+
+// DemoService demonstrates authenticated unary calls through the SDK's
+// WebContext-to-gRPC metadata propagation.
+service DemoService {
+  // Echo returns the caller identity together with the supplied message.
+  rpc Echo(EchoRequest) returns (EchoResponse);
+
+  // CurrentUser returns the identity resolved by the gRPC auth interceptor.
+  rpc CurrentUser(CurrentUserRequest) returns (CurrentUserResponse);
+}
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string message = 1;
+  string user_id = 2;
+}
+
+message CurrentUserRequest {}
+
+message CurrentUserResponse {
+  string user_id = 1;
+  string domain = 2;
+  repeated string permissions = 3;
+}
