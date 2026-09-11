@@ -1,6 +1,6 @@
 # AtlasGo GoMVC SDK
 
-Go + Gin SDK for Claw-style WebMVC services. It mirrors the Java `claw-sdk-webmvc` baseline with a Go module layout:
+Go + Gin SDK for Atlas-style WebMVC services. It mirrors the Java `atlas-sdk-webmvc` baseline with a Go module layout:
 
 - Common DTOs and errors in one `common` package: `common.Response[T]`, `common.Paged[T]`, and `common.Error`.
 - Unified auth contracts: `auth.Service`, `auth.Request`, `auth.Identity`, and demo-friendly `auth.CookieStyleService`.
@@ -35,9 +35,9 @@ The optional modules remain independent. An integrating project can use any subs
 
 | Integration | YAML namespace and loader | Explicit construction remains available |
 | --- | --- | --- |
-| MongoDB | `claw.mongo` via `mongo.LoadConfig` | `mongo.Connect(ctx, mongo.Options{...})` |
-| Redis | `claw.redis` via `redis.LoadConfig` | `redis.NewClient(redis.Options{...})` |
-| gRPC | `claw.grpc` via `clawgrpc.LoadConfig` | `clawgrpc.NewChannelFactory(clawgrpc.ClientOptions{...})` and standard `grpc.NewServer` |
+| MongoDB | `framework.mongo` via `mongo.LoadConfig` | `mongo.Connect(ctx, mongo.Options{...})` |
+| Redis | `framework.redis` via `redis.LoadConfig` | `redis.NewClient(redis.Options{...})` |
+| gRPC | `framework.grpc` via `atlasgrpc.LoadConfig` | `atlasgrpc.NewChannelFactory(atlasgrpc.ClientOptions{...})` and standard `grpc.NewServer` |
 
 All loaders accept a complete project YAML document, select their own namespace, and expand `${ENV:default}` placeholders. Loading configuration does not couple the optional modules. The demo composes all three from [demo/config.yaml](demo/config.yaml).
 
@@ -77,10 +77,10 @@ Custom attributes are available through `web.Context` and are copied into `auth.
 
 ## MongoDB Configuration And Entities
 
-`mongo.LoadConfig` reads the `claw.mongo` section from the integrating project's YAML file and resolves `${ENV:default}` placeholders. Both flat datastores and the Java-compatible `cluster -> datastores` layout are supported:
+`mongo.LoadConfig` reads the `framework.mongo` section from the integrating project's YAML file and resolves `${ENV:default}` placeholders. Both flat datastores and the Java-compatible `cluster -> datastores` layout are supported:
 
 ```yaml
-claw:
+framework:
   mongo:
     auto-index: true
     clusters:
@@ -138,7 +138,7 @@ collection := registry.Collection("orders", "order-read")
 
 ## Redis Configuration
 
-`redis.LoadConfig("config.yaml")` reads `claw.redis`, including host, port, database, credentials, timeouts, key prefix, and pool settings. `${ENV:default}` placeholders use the same behavior as MongoDB:
+`redis.LoadConfig("config.yaml")` reads `framework.redis`, including host, port, database, credentials, timeouts, key prefix, and pool settings. `${ENV:default}` placeholders use the same behavior as MongoDB:
 
 ```go
 config, err := redis.LoadConfig("config.yaml")
@@ -150,12 +150,12 @@ if config.IsEnabled() {
 
 ## gRPC Configuration And Named Services
 
-`clawgrpc.LoadConfig("config.yaml")` reads the server listener and any number of named client channels. Each service group has its own target and connection settings:
+`atlasgrpc.LoadConfig("config.yaml")` reads the server listener and any number of named client channels. Each service group has its own target and connection settings:
 
 ```go
-config, err := clawgrpc.LoadConfig("config.yaml")
+config, err := atlasgrpc.LoadConfig("config.yaml")
 listener, err := net.Listen("tcp", config.Server.ListenAddress())
-factory := clawgrpc.NewChannelFactory(config.Client)
+factory := atlasgrpc.NewChannelFactory(config.Client)
 
 accountConn, err := factory.Channel(ctx, "account-service")
 orderConn, err := factory.Channel(ctx, "order-service")
@@ -164,8 +164,8 @@ orderConn, err := factory.Channel(ctx, "order-service")
 Configuration is optional. Channels can still be created entirely in code:
 
 ```go
-factory := clawgrpc.NewChannelFactory(clawgrpc.ClientOptions{
-	Channels: map[string]clawgrpc.ChannelOptions{
+factory := atlasgrpc.NewChannelFactory(atlasgrpc.ClientOptions{
+	Channels: map[string]atlasgrpc.ChannelOptions{
 		"account-service": {Target: "account.internal:19091", Plaintext: true},
 	},
 })

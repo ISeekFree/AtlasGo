@@ -1,54 +1,54 @@
-claw:
+framework:
   mongo:
-    enabled: ${CLAW_MONGO_ENABLED:false}
+    enabled: ${ATLAS_MONGO_ENABLED:false}
     timeout: 10s
     auto-index: true
     clusters:
       primary:
-        uri: ${CLAW_DEMO_MONGO_URI:mongodb://127.0.0.1:27017}
+        uri: ${ATLAS_DEMO_MONGO_URI:mongodb://127.0.0.1:27017}
         datastores:
           demo:
-            database: ${CLAW_DEMO_MONGO_DATABASE:claw-sdk-demo}
+            database: ${ATLAS_DEMO_MONGO_DATABASE:atlas-sdk-demo}
           catalog:
-            database: claw_demo_catalog
+            database: atlas_demo_catalog
           audit:
-            database: claw_demo_audit
+            database: atlas_demo_audit
             auto-index: false
   redis:
-    enabled: ${CLAW_REDIS_ENABLED:false}
-    host: ${CLAW_DEMO_REDIS_HOST:127.0.0.1}
-    port: ${CLAW_DEMO_REDIS_PORT:6379}
-    database: ${CLAW_DEMO_REDIS_DATABASE:0}
-    username: ${CLAW_DEMO_REDIS_USERNAME:}
-    password: ${CLAW_DEMO_REDIS_PASSWORD:}
-    key-prefix: ${CLAW_DEMO_REDIS_PREFIX:claw:demo}
+    enabled: ${ATLAS_REDIS_ENABLED:false}
+    host: ${ATLAS_DEMO_REDIS_HOST:127.0.0.1}
+    port: ${ATLAS_DEMO_REDIS_PORT:6379}
+    database: ${ATLAS_DEMO_REDIS_DATABASE:0}
+    username: ${ATLAS_DEMO_REDIS_USERNAME:}
+    password: ${ATLAS_DEMO_REDIS_PASSWORD:}
+    key-prefix: ${ATLAS_DEMO_REDIS_PREFIX:atlas:demo}
     connect-timeout: 10s
     timeout: 5s
     pool:
-      max-active: ${CLAW_DEMO_REDIS_MAX_ACTIVE:8}
-      max-idle: ${CLAW_DEMO_REDIS_MAX_IDLE:8}
-      min-idle: ${CLAW_DEMO_REDIS_MIN_IDLE:0}
-      max-wait: ${CLAW_DEMO_REDIS_MAX_WAIT:3s}
+      max-active: ${ATLAS_DEMO_REDIS_MAX_ACTIVE:8}
+      max-idle: ${ATLAS_DEMO_REDIS_MAX_IDLE:8}
+      min-idle: ${ATLAS_DEMO_REDIS_MIN_IDLE:0}
+      max-wait: ${ATLAS_DEMO_REDIS_MAX_WAIT:3s}
   grpc:
     server:
-      host: ${CLAW_DEMO_GRPC_HOST:127.0.0.1}
-      port: ${CLAW_DEMO_GRPC_PORT:19090}
+      host: ${ATLAS_DEMO_GRPC_HOST:127.0.0.1}
+      port: ${ATLAS_DEMO_GRPC_PORT:19090}
       auth:
         required: true
-        inner-token: ${CLAW_DEMO_GRPC_INNER_TOKEN:}
+        inner-token: ${ATLAS_DEMO_GRPC_INNER_TOKEN:}
     client:
       channels:
         local:
-          target: ${CLAW_DEMO_GRPC_LOCAL_TARGET:127.0.0.1:19090}
+          target: ${ATLAS_DEMO_GRPC_LOCAL_TARGET:127.0.0.1:19090}
           plaintext: true
           dial-timeout: 3s
         account-service:
-          target: ${CLAW_DEMO_GRPC_ACCOUNT_TARGET:127.0.0.1:19091}
+          target: ${ATLAS_DEMO_GRPC_ACCOUNT_TARGET:127.0.0.1:19091}
           plaintext: true
           dial-timeout: 3s
           max-inbound-message-size: 4194304
         order-service:
-          target: ${CLAW_DEMO_GRPC_ORDER_TARGET:127.0.0.1:19092}
+          target: ${ATLAS_DEMO_GRPC_ORDER_TARGET:127.0.0.1:19092}
           plaintext: true
           dial-timeout: 5s
           max-inbound-message-size: 8388608

@@ -217,7 +217,7 @@ var File_demo_v1_demo_proto protoreflect.FileDescriptor
 
 const file_demo_v1_demo_proto_rawDesc = "" +
 	"\n" +
-	"\x12demo/v1/demo.proto\x12\fclaw.demo.v1\"'\n" +
+	"\x12demo/v1/demo.proto\x12\ratlas.demo.v1\"'\n" +
 	"\vEchoRequest\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"A\n" +
 	"\fEchoResponse\x12\x18\n" +
@@ -227,10 +227,10 @@ const file_demo_v1_demo_proto_rawDesc = "" +
 	"\x13CurrentUserResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x16\n" +
 	"\x06domain\x18\x02 \x01(\tR\x06domain\x12 \n" +
-	"\vpermissions\x18\x03 \x03(\tR\vpermissions2\xa0\x01\n" +
-	"\vDemoService\x12=\n" +
-	"\x04Echo\x12\x19.claw.demo.v1.EchoRequest\x1a\x1a.claw.demo.v1.EchoResponse\x12R\n" +
-	"\vCurrentUser\x12 .claw.demo.v1.CurrentUserRequest\x1a!.claw.demo.v1.CurrentUserResponseB6Z4github.com/ISeekFree/AtlasGo/demo/gen/demo/v1;demov1b\x06proto3"
+	"\vpermissions\x18\x03 \x03(\tR\vpermissions2\xa4\x01\n" +
+	"\vDemoService\x12?\n" +
+	"\x04Echo\x12\x1a.atlas.demo.v1.EchoRequest\x1a\x1b.atlas.demo.v1.EchoResponse\x12T\n" +
+	"\vCurrentUser\x12!.atlas.demo.v1.CurrentUserRequest\x1a\".atlas.demo.v1.CurrentUserResponseB6Z4github.com/ISeekFree/AtlasGo/demo/gen/demo/v1;demov1b\x06proto3"
 
 var (
 	file_demo_v1_demo_proto_rawDescOnce sync.Once
@@ -246,16 +246,16 @@ func file_demo_v1_demo_proto_rawDescGZIP() []byte {
 
 var file_demo_v1_demo_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_demo_v1_demo_proto_goTypes = []any{
-	(*EchoRequest)(nil),         // 0: claw.demo.v1.EchoRequest
-	(*EchoResponse)(nil),        // 1: claw.demo.v1.EchoResponse
-	(*CurrentUserRequest)(nil),  // 2: claw.demo.v1.CurrentUserRequest
-	(*CurrentUserResponse)(nil), // 3: claw.demo.v1.CurrentUserResponse
+	(*EchoRequest)(nil),         // 0: atlas.demo.v1.EchoRequest
+	(*EchoResponse)(nil),        // 1: atlas.demo.v1.EchoResponse
+	(*CurrentUserRequest)(nil),  // 2: atlas.demo.v1.CurrentUserRequest
+	(*CurrentUserResponse)(nil), // 3: atlas.demo.v1.CurrentUserResponse
 }
 var file_demo_v1_demo_proto_depIdxs = []int32{
-	0, // 0: claw.demo.v1.DemoService.Echo:input_type -> claw.demo.v1.EchoRequest
-	2, // 1: claw.demo.v1.DemoService.CurrentUser:input_type -> claw.demo.v1.CurrentUserRequest
-	1, // 2: claw.demo.v1.DemoService.Echo:output_type -> claw.demo.v1.EchoResponse
-	3, // 3: claw.demo.v1.DemoService.CurrentUser:output_type -> claw.demo.v1.CurrentUserResponse
+	0, // 0: atlas.demo.v1.DemoService.Echo:input_type -> atlas.demo.v1.EchoRequest
+	2, // 1: atlas.demo.v1.DemoService.CurrentUser:input_type -> atlas.demo.v1.CurrentUserRequest
+	1, // 2: atlas.demo.v1.DemoService.Echo:output_type -> atlas.demo.v1.EchoResponse
+	3, // 3: atlas.demo.v1.DemoService.CurrentUser:output_type -> atlas.demo.v1.CurrentUserResponse
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

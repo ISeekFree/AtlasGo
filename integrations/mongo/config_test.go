@@ -9,7 +9,7 @@ func TestParseConfigSupportsSingleClusterMultipleDatastores(t *testing.T) {
 	t.Setenv("MONGO_PRIMARY_URI", "mongodb://mongo-primary:27017")
 
 	config, err := ParseConfig([]byte(`
-claw:
+framework:
   mongo:
     enabled: true
     timeout: 2s
@@ -20,9 +20,9 @@ claw:
         auto-index: false
         datastores:
           catalog:
-            database: claw_catalog
+            database: atlas_catalog
           audit:
-            database: claw_audit
+            database: atlas_audit
             auto-index: true
 `))
 	if err != nil {
@@ -41,7 +41,7 @@ claw:
 	if got := resolved.clusters["primary"].timeout; got != 2*time.Second {
 		t.Fatalf("primary timeout = %s", got)
 	}
-	if got := resolved.datastores["catalog"].database; got != "claw_catalog" {
+	if got := resolved.datastores["catalog"].database; got != "atlas_catalog" {
 		t.Fatalf("catalog database = %q", got)
 	}
 	if resolved.datastores["catalog"].autoIndex {

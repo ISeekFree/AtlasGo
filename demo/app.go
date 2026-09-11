@@ -8,9 +8,9 @@ import (
 
 	"github.com/ISeekFree/AtlasGo/common"
 	demov1 "github.com/ISeekFree/AtlasGo/demo/gen/demo/v1"
-	clawgrpc "github.com/ISeekFree/AtlasGo/integrations/grpc"
-	clawmongo "github.com/ISeekFree/AtlasGo/integrations/mongo"
-	clawredis "github.com/ISeekFree/AtlasGo/integrations/redis"
+	atlasgrpc "github.com/ISeekFree/AtlasGo/integrations/grpc"
+	atlasmongo "github.com/ISeekFree/AtlasGo/integrations/mongo"
+	atlasredis "github.com/ISeekFree/AtlasGo/integrations/redis"
 	"github.com/ISeekFree/AtlasGo/web"
 	"github.com/gin-gonic/gin"
 	goredis "github.com/redis/go-redis/v9"
@@ -20,10 +20,10 @@ import (
 )
 
 type optionalClients struct {
-	mongo         *clawmongo.Registry
+	mongo         *atlasmongo.Registry
 	mongoDatabase string
 	redis         *goredis.Client
-	redisKey      clawredis.KeyBuilder
+	redisKey      atlasredis.KeyBuilder
 }
 
 type mongoConnectionTest struct {
@@ -45,7 +45,7 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 		return nil, nil, err
 	}
 	grpcServer := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(clawgrpc.UnaryServerAuthInterceptor(grpcConfig.Server.AuthOptions())),
+		grpc.ChainUnaryInterceptor(atlasgrpc.UnaryServerAuthInterceptor(grpcConfig.Server.AuthOptions())),
 	)
 	demov1.RegisterDemoServiceServer(grpcServer, demoServiceServer{})
 	go func() {
@@ -66,7 +66,7 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 		local.Target = listener.Addr().String()
 	}
 	clientOptions.Channels["local"] = local
-	channelFactory := clawgrpc.NewChannelFactory(clientOptions)
+	channelFactory := atlasgrpc.NewChannelFactory(clientOptions)
 
 	engine := gin.New()
 	sdk := web.New(web.Options{
@@ -145,7 +145,7 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 			id := primitive.NewObjectID()
 			if _, err := collection.InsertOne(ctx, bson.M{
 				"_id":       id,
-				"name":      "claw-sdk-demo",
+				"name":      "atlas-sdk-demo",
 				"createdAt": time.Now(),
 			}); err != nil {
 				panic(common.WrapError(500, "Mongo insert failed", err))
@@ -177,7 +177,7 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 			defer cancel()
 
 			key := clients.redisKey.Of("connection-test")
-			value := "claw-sdk-demo"
+			value := "atlas-sdk-demo"
 			if err := clients.redis.Set(ctx, key, value, time.Minute).Err(); err != nil {
 				panic(common.WrapError(500, "Redis set failed", err))
 			}
@@ -215,7 +215,7 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 	return engine, cleanup, nil
 }
 
-func demoGRPCClient(c *gin.Context, channelFactory *clawgrpc.ChannelFactory) demov1.DemoServiceClient {
+func demoGRPCClient(c *gin.Context, channelFactory *atlasgrpc.ChannelFactory) demov1.DemoServiceClient {
 	conn, err := channelFactory.Channel(c.Request.Context(), "local")
 	if err != nil {
 		panic(common.WrapError(500, "gRPC channel failed", err))
@@ -223,22 +223,22 @@ func demoGRPCClient(c *gin.Context, channelFactory *clawgrpc.ChannelFactory) dem
 	return demov1.NewDemoServiceClient(conn)
 }
 
-func defaultDemoGRPCConfig() clawgrpc.Config {
-	return clawgrpc.Config{
-		Server: clawgrpc.ServerOptions{
+func defaultDemoGRPCConfig() atlasgrpc.Config {
+	return atlasgrpc.Config{
+		Server: atlasgrpc.ServerOptions{
 			Addr: "127.0.0.1:0",
-			Auth: clawgrpc.ServerAuthConfig{Required: true},
+			Auth: atlasgrpc.ServerAuthConfig{Required: true},
 		},
-		Client: clawgrpc.ClientOptions{
-			Channels: map[string]clawgrpc.ChannelOptions{
+		Client: atlasgrpc.ClientOptions{
+			Channels: map[string]atlasgrpc.ChannelOptions{
 				"local": {Plaintext: true, DialTimeout: shortTimeout()},
 			},
 		},
 	}
 }
 
-func cloneChannels(input map[string]clawgrpc.ChannelOptions) map[string]clawgrpc.ChannelOptions {
-	output := make(map[string]clawgrpc.ChannelOptions, len(input)+1)
+func cloneChannels(input map[string]atlasgrpc.ChannelOptions) map[string]atlasgrpc.ChannelOptions {
+	output := make(map[string]atlasgrpc.ChannelOptions, len(input)+1)
 	for name, channel := range input {
 		output[name] = channel
 	}
@@ -249,8 +249,8 @@ func setupOptionalClients(ctx context.Context, config Config) (optionalClients, 
 	clients := optionalClients{}
 	if config.Mongo != nil && config.Mongo.IsEnabled() {
 		mongoConfig := *config.Mongo
-		mongoConfig.Entities = append(mongoConfig.Entities, clawmongo.EntityMapping{Model: mongoConnectionTest{}})
-		registry, err := clawmongo.Connect(ctx, mongoConfig)
+		mongoConfig.Entities = append(mongoConfig.Entities, atlasmongo.EntityMapping{Model: mongoConnectionTest{}})
+		registry, err := atlasmongo.Connect(ctx, mongoConfig)
 		if err != nil {
 			return clients, err
 		}
@@ -263,8 +263,8 @@ func setupOptionalClients(ctx context.Context, config Config) (optionalClients, 
 		clients.mongoDatabase = database.Name()
 	}
 	if config.Redis != nil && config.Redis.IsEnabled() {
-		clients.redis = clawredis.NewClient(*config.Redis)
-		clients.redisKey = clawredis.NewKeyBuilder(config.Redis.KeyPrefix)
+		clients.redis = atlasredis.NewClient(*config.Redis)
+		clients.redisKey = atlasredis.NewKeyBuilder(config.Redis.KeyPrefix)
 	}
 	return clients, nil
 }

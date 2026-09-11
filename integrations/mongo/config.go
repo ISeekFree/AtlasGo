@@ -48,7 +48,7 @@ func DefaultOptions() Options {
 	return Options{
 		Enabled:   Bool(true),
 		URI:       "mongodb://127.0.0.1:27017",
-		Database:  "claw",
+		Database:  "atlas",
 		Timeout:   10 * time.Second,
 		Ping:      false,
 		AutoIndex: Bool(true),
@@ -71,7 +71,7 @@ func (o Options) ClientOptions() *options.ClientOptions {
 	return options.Client().ApplyURI(uri)
 }
 
-// LoadConfig reads the claw.mongo section from a YAML project configuration.
+// LoadConfig reads the framework.mongo section from a YAML project configuration.
 func LoadConfig(path string) (Options, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -80,7 +80,7 @@ func LoadConfig(path string) (Options, error) {
 	return ParseConfig(data)
 }
 
-// ParseConfig parses either a full project YAML document containing claw.mongo,
+// ParseConfig parses either a full project YAML document containing framework.mongo,
 // or a YAML document whose root is already the Mongo configuration.
 func ParseConfig(data []byte) (Options, error) {
 	expanded := environmentPlaceholder.ReplaceAllStringFunc(string(data), func(value string) string {
@@ -96,11 +96,11 @@ func ParseConfig(data []byte) (Options, error) {
 		return Options{}, fmt.Errorf("parse mongo config: %w", err)
 	}
 	node := documentRoot(&document)
-	if claw := mappingValue(node, "claw"); claw != nil {
-		if mongoNode := mappingValue(claw, "mongo"); mongoNode != nil {
+	if framework := mappingValue(node, "framework"); framework != nil {
+		if mongoNode := mappingValue(framework, "mongo"); mongoNode != nil {
 			node = mongoNode
 		} else {
-			return Options{}, fmt.Errorf("parse mongo config: claw.mongo section is missing")
+			return Options{}, fmt.Errorf("parse mongo config: framework.mongo section is missing")
 		}
 	}
 	if node == nil || node.Kind != yaml.MappingNode {

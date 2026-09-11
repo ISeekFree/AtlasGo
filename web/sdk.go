@@ -119,8 +119,8 @@ func (s *SDK) authenticate(c *gin.Context, wc *Context, rule AuthRule, required 
 }
 
 func writeInternalError(c *gin.Context, err error) {
-	if clawError, ok := common.AsError(err); ok {
-		c.AbortWithStatusJSON(http.StatusOK, common.Failure(clawError.Code, fallback(clawError.Message, "Internal server error")))
+	if atlasError, ok := common.AsError(err); ok {
+		c.AbortWithStatusJSON(http.StatusOK, common.Failure(atlasError.Code, fallback(atlasError.Message, "Internal server error")))
 		return
 	}
 	message := err.Error()
@@ -131,8 +131,8 @@ func writeInternalError(c *gin.Context, err error) {
 }
 
 func writeError(c *gin.Context, err error) {
-	if clawError, ok := common.AsError(err); ok {
-		c.AbortWithStatusJSON(http.StatusOK, common.Failure(clawError.Code, fallback(clawError.Message, "Unauthorized")))
+	if atlasError, ok := common.AsError(err); ok {
+		c.AbortWithStatusJSON(http.StatusOK, common.Failure(atlasError.Code, fallback(atlasError.Message, "Unauthorized")))
 		return
 	}
 	message := err.Error()

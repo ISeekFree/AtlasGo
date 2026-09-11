@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	GinContextKey = "claw.web.context"
-	ReqStartKey   = "claw.web.request_started_at"
+	GinContextKey = "atlas.web.context"
+	ReqStartKey   = "atlas.web.request_started_at"
 )
 
 type Context struct {

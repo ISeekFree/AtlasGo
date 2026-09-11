@@ -1,4 +1,4 @@
-package clawgrpc
+package atlasgrpc
 
 import (
 	"context"

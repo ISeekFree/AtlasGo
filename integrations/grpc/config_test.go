@@ -1,4 +1,4 @@
-package clawgrpc
+package atlasgrpc
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ func TestParseConfigReadsServerAndNamedChannels(t *testing.T) {
 	t.Setenv("GRPC_TEST_PORT", "19091")
 
 	config, err := ParseConfig([]byte(`
-claw:
+framework:
   grpc:
     server:
       host: 127.0.0.1

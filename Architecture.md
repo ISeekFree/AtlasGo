@@ -25,7 +25,7 @@ The SDK deliberately separates parsing from runtime construction:
 
 | Phase | MongoDB | Redis | gRPC |
 | --- | --- | --- | --- |
-| Parse | `mongo.LoadConfig` selects `claw.mongo`. | `redis.LoadConfig` selects `claw.redis`. | `clawgrpc.LoadConfig` selects `claw.grpc`. |
+| Parse | `mongo.LoadConfig` selects `framework.mongo`. | `redis.LoadConfig` selects `framework.redis`. | `atlasgrpc.LoadConfig` selects `framework.grpc`. |
 | Enrich | Register entity/datastore/collection mappings in Go. | Optionally override fields in Go. | Optionally add/override named channels or code interceptors. |
 | Construct | `mongo.Connect` creates cluster clients/datastores and auto-indexes registered entities. | `redis.NewClient` creates a lazy go-redis client. | `grpc.NewServer` creates the server; `NewChannelFactory` creates lazy named client connections. |
 
@@ -58,7 +58,7 @@ MongoDB and Redis are not imported by the core module:
 - MongoDB preserves named multi-cluster routing and supports nested `cluster -> datastores` configuration for multiple databases on one cluster.
 - Registered entities map a Go type to a datastore and collection. Simple `mongo` field tags and entity-level `MongoIndexes` declarations are converted to ordered single-field or compound indexes when effective `auto-index` is enabled.
 - Entity-level `CompoundIndex` is the Go counterpart of Morphia `@Indexes`; it preserves key order/direction and supports unique, sparse, hidden, and TTL options.
-- `integrations/redis` exposes `LoadConfig`, `NewClient`, and `KeyBuilder`; `claw.redis` maps Java-style timeout and pool settings to go-redis.
+- `integrations/redis` exposes `LoadConfig`, `NewClient`, and `KeyBuilder`; `framework.redis` maps Java-style timeout and pool settings to go-redis.
 
 Consumers add these modules only when needed from `github.com/ISeekFree/AtlasGo/integrations/...`. Local `replace` directives are reserved for development inside this repository.
 
@@ -72,7 +72,7 @@ Server side:
 
 Client side:
 
-- `LoadConfig` reads the gRPC server listener and multiple named client service groups from `claw.grpc`.
+- `LoadConfig` reads the gRPC server listener and multiple named client service groups from `framework.grpc`.
 - `NewChannelFactory` creates named channels from either loaded configuration or explicit programmatic options.
 - Each channel name represents a service group with an independent target, plaintext mode, dial timeout, and inbound message limit. Connections are created only when requested.
 - Client interceptors read the current `web.Context` from `context.Context`, resolve the token from the original HTTP request headers, and forward it as gRPC metadata.

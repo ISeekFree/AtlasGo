@@ -5,37 +5,37 @@ import (
 	"strconv"
 	"time"
 
-	clawgrpc "github.com/ISeekFree/AtlasGo/integrations/grpc"
-	clawmongo "github.com/ISeekFree/AtlasGo/integrations/mongo"
-	clawredis "github.com/ISeekFree/AtlasGo/integrations/redis"
+	atlasgrpc "github.com/ISeekFree/AtlasGo/integrations/grpc"
+	atlasmongo "github.com/ISeekFree/AtlasGo/integrations/mongo"
+	atlasredis "github.com/ISeekFree/AtlasGo/integrations/redis"
 )
 
 type Config struct {
 	HTTPAddr string
-	GRPC     *clawgrpc.Config
-	Mongo    *clawmongo.Options
-	Redis    *clawredis.Options
+	GRPC     *atlasgrpc.Config
+	Mongo    *atlasmongo.Options
+	Redis    *atlasredis.Options
 }
 
 func configFromEnv() (Config, error) {
-	config, err := configFromFile(env("CLAW_DEMO_CONFIG", "config.yaml"))
+	config, err := configFromFile(env("ATLAS_DEMO_CONFIG", "config.yaml"))
 	if err != nil {
 		return Config{}, err
 	}
-	config.HTTPAddr = env("CLAW_DEMO_HTTP_ADDR", ":8080")
+	config.HTTPAddr = env("ATLAS_DEMO_HTTP_ADDR", ":8080")
 	return config, nil
 }
 
 func configFromFile(path string) (Config, error) {
-	mongoConfig, err := clawmongo.LoadConfig(path)
+	mongoConfig, err := atlasmongo.LoadConfig(path)
 	if err != nil {
 		return Config{}, err
 	}
-	redisConfig, err := clawredis.LoadConfig(path)
+	redisConfig, err := atlasredis.LoadConfig(path)
 	if err != nil {
 		return Config{}, err
 	}
-	grpcConfig, err := clawgrpc.LoadConfig(path)
+	grpcConfig, err := atlasgrpc.LoadConfig(path)
 	if err != nil {
 		return Config{}, err
 	}

@@ -15,7 +15,7 @@ This is the canonical coding-agent guide for the repository. Read [Architecture.
 ## Non-Negotiable Boundaries
 
 - Keep optional integrations as separate modules. The root module must not import MongoDB, Redis, or gRPC implementations.
-- Keep shared errors and response/page DTOs in `common`; do not recreate standalone `clawerr` or `response` packages.
+- Keep shared errors and response/page DTOs in `common`; do not recreate standalone `atlaserr` or `response` packages.
 - Preserve Java-compatible `{code,msg,data}` response semantics. Business and authentication failures use HTTP 200 with a non-zero business code.
 - Extend request-specific business context through `web.ContextCustomizer` and `web.Context.Attributes`, not one-off core fields.
 - Production authentication replaces `auth.Service`; Web and gRPC must continue depending on that interface.
@@ -27,9 +27,9 @@ Each optional module independently reads its namespace from the integrating proj
 
 | Namespace | Loader | Runtime construction |
 | --- | --- | --- |
-| `claw.mongo` | `mongo.LoadConfig` | Append entity mappings, then call `mongo.Connect`. |
-| `claw.redis` | `redis.LoadConfig` | Check `IsEnabled`, then call `redis.NewClient`. |
-| `claw.grpc` | `clawgrpc.LoadConfig` | Use `Server.ListenAddress` and `NewChannelFactory(config.Client)`. |
+| `framework.mongo` | `mongo.LoadConfig` | Append entity mappings, then call `mongo.Connect`. |
+| `framework.redis` | `redis.LoadConfig` | Check `IsEnabled`, then call `redis.NewClient`. |
+| `framework.grpc` | `atlasgrpc.LoadConfig` | Use `Server.ListenAddress` and `NewChannelFactory(config.Client)`. |
 
 Do not couple the three loaders or make the optional modules depend on one another. The demo may compose all three from one `config.yaml`.
 
@@ -47,7 +47,7 @@ Do not couple the three loaders or make the optional modules depend on one anoth
 ## Redis Rules
 
 - Preserve direct `redis.NewClient(redis.Options{...})` usage.
-- `claw.redis` supports `addr` or `host`/`port`, database, credentials, key prefix, common timeouts, and Java-style pool fields.
+- `framework.redis` supports `addr` or `host`/`port`, database, credentials, key prefix, common timeouts, and Java-style pool fields.
 - Map `connect-timeout` to dial timeout, `timeout` to read/write timeouts, `max-active` to pool size, and `max-wait` to pool timeout.
 - Configuration parsing must not connect to Redis; connection remains lazy in go-redis.
 
@@ -67,5 +67,5 @@ Do not couple the three loaders or make the optional modules depend on one anoth
 - `demo/proto` is the source of truth for demo gRPC contracts. Commit generated files under `demo/gen`; do not restore hand-written `grpc.ServiceDesc` stubs.
 - When a proto changes, run `./protoc.sh` from the repository root, or `go generate ./...` from `demo`; both use the same generator path. Exercise every demo RPC through its generated client in tests.
 - The demo uses local `replace` directives to exercise the current checkout; public examples use the GitHub module paths.
-- External Redis/Mongo checks remain opt-in with `CLAW_DEMO_EXTERNAL_TEST=1`.
+- External Redis/Mongo checks remain opt-in with `ATLAS_DEMO_EXTERNAL_TEST=1`.
 - Run `./build.sh` before completing broad SDK changes.

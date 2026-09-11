@@ -4,7 +4,7 @@ import (
 	"context"
 
 	demov1 "github.com/ISeekFree/AtlasGo/demo/gen/demo/v1"
-	clawgrpc "github.com/ISeekFree/AtlasGo/integrations/grpc"
+	atlasgrpc "github.com/ISeekFree/AtlasGo/integrations/grpc"
 )
 
 type demoServiceServer struct {
@@ -12,7 +12,7 @@ type demoServiceServer struct {
 }
 
 func (demoServiceServer) Echo(ctx context.Context, request *demov1.EchoRequest) (*demov1.EchoResponse, error) {
-	identity, _ := clawgrpc.IdentityFromContext(ctx)
+	identity, _ := atlasgrpc.IdentityFromContext(ctx)
 	return &demov1.EchoResponse{
 		Message: "echo:" + identity.UserID + ":" + request.GetMessage(),
 		UserId:  identity.UserID,
@@ -20,7 +20,7 @@ func (demoServiceServer) Echo(ctx context.Context, request *demov1.EchoRequest) 
 }
 
 func (demoServiceServer) CurrentUser(ctx context.Context, _ *demov1.CurrentUserRequest) (*demov1.CurrentUserResponse, error) {
-	identity, _ := clawgrpc.IdentityFromContext(ctx)
+	identity, _ := atlasgrpc.IdentityFromContext(ctx)
 	return &demov1.CurrentUserResponse{
 		UserId:      identity.UserID,
 		Domain:      identity.Domain,

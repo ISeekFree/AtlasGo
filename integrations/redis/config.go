@@ -12,7 +12,7 @@ import (
 var environmentPlaceholder = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([^}]*))?}`)
 var ErrDisabled = fmt.Errorf("redis integration is disabled")
 
-// LoadConfig reads the claw.redis section from a YAML project configuration.
+// LoadConfig reads the framework.redis section from a YAML project configuration.
 func LoadConfig(path string) (Options, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -21,7 +21,7 @@ func LoadConfig(path string) (Options, error) {
 	return ParseConfig(data)
 }
 
-// ParseConfig parses either a full project YAML document containing claw.redis,
+// ParseConfig parses either a full project YAML document containing framework.redis,
 // or a YAML document whose root is already the Redis configuration.
 func ParseConfig(data []byte) (Options, error) {
 	expanded := environmentPlaceholder.ReplaceAllStringFunc(string(data), func(value string) string {
@@ -37,11 +37,11 @@ func ParseConfig(data []byte) (Options, error) {
 		return Options{}, fmt.Errorf("parse redis config: %w", err)
 	}
 	node := documentRoot(&document)
-	if claw := mappingValue(node, "claw"); claw != nil {
-		if redisNode := mappingValue(claw, "redis"); redisNode != nil {
+	if framework := mappingValue(node, "framework"); framework != nil {
+		if redisNode := mappingValue(framework, "redis"); redisNode != nil {
 			node = redisNode
 		} else {
-			return Options{}, fmt.Errorf("parse redis config: claw.redis section is missing")
+			return Options{}, fmt.Errorf("parse redis config: framework.redis section is missing")
 		}
 	}
 	if node == nil || node.Kind != yaml.MappingNode {

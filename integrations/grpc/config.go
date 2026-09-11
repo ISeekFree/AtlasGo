@@ -1,4 +1,4 @@
-package clawgrpc
+package atlasgrpc
 
 import (
 	"fmt"
@@ -45,7 +45,7 @@ func (s ServerOptions) AuthOptions() ServerAuthOptions {
 	return ServerAuthOptions{Required: s.Auth.Required, InnerToken: s.Auth.InnerToken}
 }
 
-// LoadConfig reads the claw.grpc section from a YAML project configuration.
+// LoadConfig reads the framework.grpc section from a YAML project configuration.
 func LoadConfig(path string) (Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -54,7 +54,7 @@ func LoadConfig(path string) (Config, error) {
 	return ParseConfig(data)
 }
 
-// ParseConfig parses either a full project YAML document containing claw.grpc,
+// ParseConfig parses either a full project YAML document containing framework.grpc,
 // or a YAML document whose root is already the gRPC configuration.
 func ParseConfig(data []byte) (Config, error) {
 	expanded := environmentPlaceholder.ReplaceAllStringFunc(string(data), func(value string) string {
@@ -70,11 +70,11 @@ func ParseConfig(data []byte) (Config, error) {
 		return Config{}, fmt.Errorf("parse grpc config: %w", err)
 	}
 	node := documentRoot(&document)
-	if claw := mappingValue(node, "claw"); claw != nil {
-		if grpcNode := mappingValue(claw, "grpc"); grpcNode != nil {
+	if framework := mappingValue(node, "framework"); framework != nil {
+		if grpcNode := mappingValue(framework, "grpc"); grpcNode != nil {
 			node = grpcNode
 		} else {
-			return Config{}, fmt.Errorf("parse grpc config: claw.grpc section is missing")
+			return Config{}, fmt.Errorf("parse grpc config: framework.grpc section is missing")
 		}
 	}
 	if node == nil || node.Kind != yaml.MappingNode {

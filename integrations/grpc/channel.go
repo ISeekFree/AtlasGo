@@ -1,4 +1,4 @@
-package clawgrpc
+package atlasgrpc
 
 import (
 	"context"
@@ -40,7 +40,7 @@ func (f *ChannelFactory) Channel(ctx context.Context, name string) (*grpc.Client
 	}
 	config, ok := f.options.Channels[name]
 	if !ok || config.Target == "" {
-		return nil, fmt.Errorf("missing claw.grpc.client.channels.%s.target", name)
+		return nil, fmt.Errorf("missing framework.grpc.client.channels.%s.target", name)
 	}
 	dialOptions := []grpc.DialOption{}
 	if config.Plaintext {

@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DemoService_Echo_FullMethodName        = "/claw.demo.v1.DemoService/Echo"
-	DemoService_CurrentUser_FullMethodName = "/claw.demo.v1.DemoService/CurrentUser"
+	DemoService_Echo_FullMethodName        = "/atlas.demo.v1.DemoService/Echo"
+	DemoService_CurrentUser_FullMethodName = "/atlas.demo.v1.DemoService/CurrentUser"
 )
 
 // DemoServiceClient is the client API for DemoService service.
@@ -152,7 +152,7 @@ func _DemoService_CurrentUser_Handler(srv interface{}, ctx context.Context, dec 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var DemoService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "claw.demo.v1.DemoService",
+	ServiceName: "atlas.demo.v1.DemoService",
 	HandlerType: (*DemoServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

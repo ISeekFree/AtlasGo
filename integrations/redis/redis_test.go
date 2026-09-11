@@ -6,17 +6,17 @@ import (
 )
 
 func TestKeyBuilderOf(t *testing.T) {
-	builder := NewKeyBuilder("claw")
-	if got := builder.Of("demo"); got != "claw:demo" {
-		t.Fatalf("key = %q, want claw:demo", got)
+	builder := NewKeyBuilder("atlas")
+	if got := builder.Of("demo"); got != "atlas:demo" {
+		t.Fatalf("key = %q, want atlas:demo", got)
 	}
 }
 
-func TestParseConfigReadsClawRedisAndEnvironment(t *testing.T) {
+func TestParseConfigReadsAtlasRedisAndEnvironment(t *testing.T) {
 	t.Setenv("REDIS_TEST_HOST", "redis.internal")
 
 	config, err := ParseConfig([]byte(`
-claw:
+framework:
   redis:
     enabled: true
     host: ${REDIS_TEST_HOST:127.0.0.1}
@@ -24,7 +24,7 @@ claw:
     database: 2
     username: app
     password: secret
-    key-prefix: claw:test
+    key-prefix: atlas:test
     connect-timeout: 10s
     timeout: 5s
     pool:
@@ -52,7 +52,7 @@ claw:
 }
 
 func TestParseConfigSupportsDisabledRedis(t *testing.T) {
-	config, err := ParseConfig([]byte("claw:\n  redis:\n    enabled: false\n"))
+	config, err := ParseConfig([]byte("framework:\n  redis:\n    enabled: false\n"))
 	if err != nil {
 		t.Fatalf("ParseConfig() error = %v", err)
 	}

@@ -3,9 +3,9 @@ package main
 import "testing"
 
 func TestConfigFromFileLoadsMongoRedisAndGRPCSections(t *testing.T) {
-	t.Setenv("CLAW_MONGO_ENABLED", "false")
-	t.Setenv("CLAW_REDIS_ENABLED", "false")
-	t.Setenv("CLAW_DEMO_REDIS_HOST", "redis.demo.internal")
+	t.Setenv("ATLAS_MONGO_ENABLED", "false")
+	t.Setenv("ATLAS_REDIS_ENABLED", "false")
+	t.Setenv("ATLAS_DEMO_REDIS_HOST", "redis.demo.internal")
 
 	config, err := configFromFile("config.yaml")
 	if err != nil {

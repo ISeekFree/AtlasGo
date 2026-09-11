@@ -10,7 +10,7 @@ The examples use `@latest`; for the first release, publish the root `v0.1.0` tag
 go run .
 ```
 
-The demo loads MongoDB, Redis, and gRPC settings from [config.yaml](config.yaml). Set `CLAW_DEMO_CONFIG` to use another file. MongoDB and Redis are disabled by default and can be enabled through `CLAW_MONGO_ENABLED=true` and `CLAW_REDIS_ENABLED=true`.
+The demo loads MongoDB, Redis, and gRPC settings from [config.yaml](config.yaml). Set `ATLAS_DEMO_CONFIG` to use another file. MongoDB and Redis are disabled by default and can be enabled through `ATLAS_MONGO_ENABLED=true` and `ATLAS_REDIS_ENABLED=true`.
 
 Initialization follows one visible path: `configFromFile` invokes each SDK loader, `newDemoApp` starts the configured gRPC server and named channel factory, and `setupOptionalClients` initializes only enabled MongoDB/Redis integrations.
 
@@ -71,7 +71,7 @@ Add only when the project needs MongoDB:
 go get github.com/ISeekFree/AtlasGo/integrations/mongo@latest
 ```
 
-Use `mongo.LoadConfig("config.yaml")` to read the integrating project's `claw.mongo` section; see [config.yaml](config.yaml) for a single-cluster, multi-database example. Register entities in Go, then keep the returned registry in your application container:
+Use `mongo.LoadConfig("config.yaml")` to read the integrating project's `framework.mongo` section; see [config.yaml](config.yaml) for a single-cluster, multi-database example. Register entities in Go, then keep the returned registry in your application container:
 
 ```go
 type Product struct {
@@ -116,7 +116,7 @@ Add only when the project needs Redis:
 go get github.com/ISeekFree/AtlasGo/integrations/redis@latest
 ```
 
-Use `redis.LoadConfig("config.yaml")`, then pass the result to `redis.NewClient`. The `claw.redis` section supports host, port, database, credentials, key prefix, common timeouts, and Java-style pool settings:
+Use `redis.LoadConfig("config.yaml")`, then pass the result to `redis.NewClient`. The `framework.redis` section supports host, port, database, credentials, key prefix, common timeouts, and Java-style pool settings:
 
 ```go
 config, err := redis.LoadConfig("config.yaml")
@@ -134,28 +134,28 @@ Add only when the project needs gRPC:
 go get github.com/ISeekFree/AtlasGo/integrations/grpc@latest
 ```
 
-`clawgrpc.LoadConfig("config.yaml")` reads `claw.grpc.server` and all named entries under `claw.grpc.client.channels`. The demo defines `local`, `account-service`, and `order-service`; connections are created lazily when their names are requested:
+`atlasgrpc.LoadConfig("config.yaml")` reads `framework.grpc.server` and all named entries under `framework.grpc.client.channels`. The demo defines `local`, `account-service`, and `order-service`; connections are created lazily when their names are requested:
 
 ```go
-config, err := clawgrpc.LoadConfig("config.yaml")
-factory := clawgrpc.NewChannelFactory(config.Client)
+config, err := atlasgrpc.LoadConfig("config.yaml")
+factory := atlasgrpc.NewChannelFactory(config.Client)
 accountConn, err := factory.Channel(ctx, "account-service")
 orderConn, err := factory.Channel(ctx, "order-service")
 ```
 
-The `/demo/grpc` endpoint requests the `local` channel. Its target comes from `claw.grpc.client.channels.local.target`; the server listener comes independently from `claw.grpc.server.host/port`. When tests use server port `0`, the demo replaces only the local target with the actual allocated listener address.
+The `/demo/grpc` endpoint requests the `local` channel. Its target comes from `framework.grpc.client.channels.local.target`; the server listener comes independently from `framework.grpc.server.host/port`. When tests use server port `0`, the demo replaces only the local target with the actual allocated listener address.
 
 Manual construction remains supported and is useful when targets come from service discovery or code:
 
 ```go
-factory := clawgrpc.NewChannelFactory(clawgrpc.ClientOptions{
-	Channels: map[string]clawgrpc.ChannelOptions{
+factory := atlasgrpc.NewChannelFactory(atlasgrpc.ClientOptions{
+	Channels: map[string]atlasgrpc.ChannelOptions{
 		"account-service": {Target: "account.internal:19091", Plaintext: true},
 	},
 })
 ```
 
-Server side uses `clawgrpc.UnaryServerAuthInterceptor`; client channels resolve the current HTTP token from the original Gin request headers and propagate it by default.
+Server side uses `atlasgrpc.UnaryServerAuthInterceptor`; client channels resolve the current HTTP token from the original Gin request headers and propagate it by default.
 
 ### Protobuf contract
 
@@ -180,17 +180,17 @@ Do not edit generated `.pb.go` files or reintroduce hand-written `grpc.ServiceDe
 Normal `go test ./...` skips external storage checks. To run the supplied Redis and MongoDB basic operation test:
 
 ```bash
-CLAW_DEMO_EXTERNAL_TEST=1 go test . -run TestDemoExternalRedisAndMongoBasicOperations -count=1
+ATLAS_DEMO_EXTERNAL_TEST=1 go test . -run TestDemoExternalRedisAndMongoBasicOperations -count=1
 ```
 
-The test uses the supplied Redis host/database/pool settings and MongoDB database `claw-sdk-demo` by default. Override with:
+The test uses the supplied Redis host/database/pool settings and MongoDB database `atlas-sdk-demo` by default. Override with:
 
 ```bash
-CLAW_DEMO_MONGO_URI=... \
-CLAW_DEMO_MONGO_DATABASE=claw-sdk-demo \
-CLAW_DEMO_REDIS_HOST=... \
-CLAW_DEMO_REDIS_PORT=6379 \
-CLAW_DEMO_REDIS_DATABASE=1 \
-CLAW_DEMO_REDIS_PASSWORD=... \
-CLAW_DEMO_EXTERNAL_TEST=1 go test . -run TestDemoExternalRedisAndMongoBasicOperations -count=1
+ATLAS_DEMO_MONGO_URI=... \
+ATLAS_DEMO_MONGO_DATABASE=atlas-sdk-demo \
+ATLAS_DEMO_REDIS_HOST=... \
+ATLAS_DEMO_REDIS_PORT=6379 \
+ATLAS_DEMO_REDIS_DATABASE=1 \
+ATLAS_DEMO_REDIS_PASSWORD=... \
+ATLAS_DEMO_EXTERNAL_TEST=1 go test . -run TestDemoExternalRedisAndMongoBasicOperations -count=1
 ```
