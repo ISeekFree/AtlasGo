@@ -166,10 +166,12 @@ Configuration is optional. Channels can still be created entirely in code:
 ```go
 factory := atlasgrpc.NewChannelFactory(atlasgrpc.ClientOptions{
 	Channels: map[string]atlasgrpc.ChannelOptions{
-		"account-service": {Target: "account.internal:19091", Plaintext: true},
+		"account-service": {Target: "static://account.internal:19091", Plaintext: true},
 	},
 })
 ```
+
+Targets follow gRPC naming syntax. AtlasGo registers `static://host:port` for a fixed single address. Service discovery can use official resolver schemes such as `dns:///service:port`, `dns:///service.namespace.svc.cluster.local:port`, `xds:///service-name` with xDS runtime/bootstrap, or `unix:///path/to.sock` when the transport supports Unix sockets. `${:default}` placeholders are accepted when a config value should always fall back to the default string.
 
 Named channels are lazy: defining `account-service` or `order-service` does not establish a connection until `Channel(ctx, name)` is called. The channel name is the stable service-group routing key; targets and connection settings may differ for every group.
 

@@ -150,10 +150,12 @@ Manual construction remains supported and is useful when targets come from servi
 ```go
 factory := atlasgrpc.NewChannelFactory(atlasgrpc.ClientOptions{
 	Channels: map[string]atlasgrpc.ChannelOptions{
-		"account-service": {Target: "account.internal:19091", Plaintext: true},
+		"account-service": {Target: "static://account.internal:19091", Plaintext: true},
 	},
 })
 ```
+
+Targets follow gRPC naming syntax. The demo defaults use AtlasGo `static://host:port`; Kubernetes or DNS discovery can use `dns:///service:port`, xDS can use `xds:///service-name` when xDS runtime/bootstrap is configured, and Unix sockets can use `unix:///path/to.sock` when supported by the transport.
 
 Server side uses `atlasgrpc.UnaryServerAuthInterceptor`; client channels resolve the current HTTP token from the original Gin request headers and propagate it by default.
 

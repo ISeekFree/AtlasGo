@@ -11,7 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var environmentPlaceholder = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([^}]*))?}`)
+var environmentPlaceholder = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*|)(?::([^}]*))?}`)
 
 type Config struct {
 	Server ServerOptions `yaml:"server"`
@@ -59,6 +59,9 @@ func LoadConfig(path string) (Config, error) {
 func ParseConfig(data []byte) (Config, error) {
 	expanded := environmentPlaceholder.ReplaceAllStringFunc(string(data), func(value string) string {
 		parts := environmentPlaceholder.FindStringSubmatch(value)
+		if parts[1] == "" {
+			return parts[2]
+		}
 		if configured, ok := os.LookupEnv(parts[1]); ok {
 			return configured
 		}
