@@ -12,6 +12,7 @@ const staticResolverScheme = "static"
 
 func init() {
 	resolver.Register(staticResolverBuilder{})
+	resolver.SetDefaultScheme(staticResolverScheme)
 }
 
 type staticResolverBuilder struct{}

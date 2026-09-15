@@ -79,6 +79,11 @@ Client side:
 
 This keeps Web and gRPC on one auth contract.
 
+Resolver targets use `static` by default when no scheme is present. The grpc-go
+built-ins `dns`, `unix`, and `passthrough` remain available for explicit targets,
+and AtlasGo imports the official `xds` resolver by default. xDS still requires
+an xDS runtime/bootstrap configuration when an `xds:///...` target is used.
+
 ## Demo Validation
 
 The `demo` module validates:

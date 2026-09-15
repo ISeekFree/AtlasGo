@@ -171,7 +171,7 @@ factory := atlasgrpc.NewChannelFactory(atlasgrpc.ClientOptions{
 })
 ```
 
-Targets follow gRPC naming syntax. AtlasGo registers `static://host:port` for a fixed single address. Service discovery can use official resolver schemes such as `dns:///service:port`, `dns:///service.namespace.svc.cluster.local:port`, `xds:///service-name` with xDS runtime/bootstrap, or `unix:///path/to.sock` when the transport supports Unix sockets. `${:default}` placeholders are accepted when a config value should always fall back to the default string.
+Targets follow gRPC naming syntax. AtlasGo registers `static://host:port` for a fixed single address and makes `static` the default resolver, so a target without a scheme, such as `127.0.0.1:19091` or `account.internal:19091`, is also treated as static. IPv4, domain names, and bracketed IPv6 are supported. The grpc-go built-ins `dns:///service:port`, `unix:///path/to.sock`, and `passthrough:///service` are available by default. AtlasGo also registers the official `xds:///service-name` resolver by default; using it requires an xDS runtime/bootstrap configuration. `${:default}` placeholders are accepted when a config value should always fall back to the default string.
 
 Named channels are lazy: defining `account-service` or `order-service` does not establish a connection until `Channel(ctx, name)` is called. The channel name is the stable service-group routing key; targets and connection settings may differ for every group.
 

@@ -155,7 +155,7 @@ factory := atlasgrpc.NewChannelFactory(atlasgrpc.ClientOptions{
 })
 ```
 
-Targets follow gRPC naming syntax. The demo defaults use AtlasGo `static://host:port`; Kubernetes or DNS discovery can use `dns:///service:port`, xDS can use `xds:///service-name` when xDS runtime/bootstrap is configured, and Unix sockets can use `unix:///path/to.sock` when supported by the transport.
+Targets follow gRPC naming syntax. The demo defaults omit the scheme and therefore use AtlasGo's default static resolver; explicit `static://host:port` is equivalent. Static targets accept an IP address or domain name. Kubernetes or DNS discovery uses `dns:///service:port`; Unix sockets use `unix:///path/to.sock`; `xds:///service-name` uses the official xDS resolver and requires an xDS runtime/bootstrap configuration.
 
 Server side uses `atlasgrpc.UnaryServerAuthInterceptor`; client channels resolve the current HTTP token from the original Gin request headers and propagate it by default.
 
