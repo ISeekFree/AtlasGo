@@ -6,19 +6,22 @@ This is the canonical coding-agent guide for the repository. Read [Architecture.
 
 | Path | Go module | Responsibility |
 | --- | --- | --- |
-| `.` | `github.com/ISeekFree/AtlasGo` | `common`, auth contracts, Gin context/auth/response middleware. |
+| `.` | `github.com/ISeekFree/AtlasGo` | `common`, auth contracts, Gin context/auth/CORS/response middleware. |
 | `integrations/mongo` | `github.com/ISeekFree/AtlasGo/integrations/mongo` | MongoDB configuration, cluster/datastore registry, entity routing, indexes, and CRUD. |
 | `integrations/redis` | `github.com/ISeekFree/AtlasGo/integrations/redis` | Redis configuration, client creation, pool mapping, and key prefixes. |
-| `integrations/grpc` | `github.com/ISeekFree/AtlasGo/integrations/grpc` | gRPC configuration, named channels, auth propagation, and server/client interceptors. |
+| `integrations/grpc` | `github.com/ISeekFree/AtlasGo/integrations/grpc` | gRPC configuration, named channels, and identity context helpers. |
 | `demo` | `github.com/ISeekFree/AtlasGo/demo` | Local integration example and validation only. |
 
 ## Non-Negotiable Boundaries
 
 - Keep optional integrations as separate modules. The root module must not import MongoDB, Redis, or gRPC implementations.
 - Keep shared errors and response/page DTOs in `common`; do not recreate standalone `atlaserr` or `response` packages.
-- Preserve Java-compatible `{code,msg,data}` response semantics. Business and authentication failures use HTTP 200 with a non-zero business code.
+- Log-in/credential failures always use `common.Unauthorized` (`code = -94`), matching the Java SDK's `UnauthorizedException`.
+- Preserve Java-compatible `{code,msg,data}` response semantics. Business and authentication failures use HTTP 200 with a non-zero business code; recovered panics and handler-reported errors must return the same envelope, defaulting to `common.SystemErrorCode` (-90) unless a business `web.ErrorResolver` overrides it. The unified error is `common.Error`: `common.NewError`/`common.WrapError` default to -90, `common.NewErrorCode`/`common.WrapErrorCode` take an explicit code; do not introduce a second error type.
+- CORS is SDK-owned. `sdk.Install` installs `web.CorsMiddleware` (configured with `Options.Cors`) ahead of auth so preflight requests and error responses are decorated centrally; business services must not register their own CORS middleware.
 - Extend request-specific business context through `web.ContextCustomizer` and `web.Context.Attributes`, not one-off core fields.
-- Production authentication replaces `auth.Service`; Web and gRPC must continue depending on that interface.
+- Tokens are JWT. The SDK owns only the crypto (`auth.JWTCodec`) plus the extensible `web.Context` and `web.ContextLoader`/`web.ResolveToken` seams; it must never hard-code business claim names. Authentication lives in a business `web.ContextLoader` (register it through `web.Options.ContextLoaders`), and HTTP, gRPC and WebSocket all read the same `*web.Context` (`integrations/grpc.ContextFromContext` for gRPC, `web.WebsocketContextFrom` for WebSocket).
+- AtlasGo does not ship gRPC auth interceptors in either direction. The business project owns auth policy and the token contract, registering its own `grpc.UnaryServerInterceptor`/`grpc.StreamServerInterceptor` and `grpc.UnaryClientInterceptor`/`grpc.StreamClientInterceptor`; AtlasGo only provides the `Metadata*` keys, the identity context helpers, and the `UnaryInterceptors`/`StreamInterceptors` slots on `atlasgrpc.ClientOptions`.
 - YAML loading is an optional convenience. Every integration must continue supporting explicit programmatic options and constructors.
 
 ## Configuration Contract
@@ -55,9 +58,9 @@ Do not couple the three loaders or make the optional modules depend on one anoth
 
 - `ClientOptions.Channels` is a map of named service groups. Multiple targets such as `account-service` and `order-service` must remain supported.
 - Channels are created lazily by `Channel(ctx, name)` and cached by name.
-- Preserve fully manual `NewChannelFactory(ClientOptions)` construction, including code-only interceptors.
-- Preserve automatic WebContext token propagation unless explicitly disabled.
-- Server listener/auth configuration is separate from client channels. Do not assume every client channel points to the local server.
+- Preserve fully manual `NewChannelFactory(ClientOptions)` construction, including business-supplied code-only interceptors.
+- Never resolve or forward a token inside the SDK; the consuming project decides which request header or other source carries it and which metadata key the callee reads.
+- Server listener configuration is separate from client channels. Do not assume every client channel points to the local server.
 
 ## Demo And Verification
 

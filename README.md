@@ -3,8 +3,8 @@
 Go + Gin SDK for Atlas-style WebMVC services. It mirrors the Java `atlas-sdk-webmvc` baseline with a Go module layout:
 
 - Common DTOs and errors in one `common` package: `common.Response[T]`, `common.Paged[T]`, and `common.Error`.
-- Unified auth contracts: `auth.Service`, `auth.Request`, `auth.Identity`, and demo-friendly `auth.CookieStyleService`.
-- Gin Web support: WebContext extraction, `ContextCustomizer` extension points, route-level `RequireAuth`, required-by-default auth, response wrapping, and unified error responses.
+- Extensible request context: `web.Context`, `web.ContextLoader`, `web.ResolveToken` and the JWT crypto (`auth.JWTCodec`); the same `*web.Context` is readable over HTTP, gRPC and WebSocket.
+- Gin Web support: WebContext extraction, `ContextCustomizer` extension points, route-level `RequireAuth`, required-by-default auth, SDK-level CORS, response wrapping, and unified error responses.
 - Optional integrations as separate modules: MongoDB with cluster/datastore/entity routing and auto-index, Redis with YAML pool mapping, and gRPC with multiple named service channels.
 - Local demo project with one combined `config.yaml` for SDK validation and integration examples.
 
@@ -26,7 +26,7 @@ The repository uses nested Go modules. For a release, tag the root module as `v0
 | `.` | `github.com/ISeekFree/AtlasGo` | Core SDK: common DTOs/errors, auth, and Gin middleware. |
 | `integrations/mongo` | `github.com/ISeekFree/AtlasGo/integrations/mongo` | MongoDB config loader, registry, entity routing/indexes, and generic CRUD. |
 | `integrations/redis` | `github.com/ISeekFree/AtlasGo/integrations/redis` | Redis config loader, client options mapping, and key builder. |
-| `integrations/grpc` | `github.com/ISeekFree/AtlasGo/integrations/grpc` | gRPC config loader, named channels, auth context, and interceptors. |
+| `integrations/grpc` | `github.com/ISeekFree/AtlasGo/integrations/grpc` | gRPC config loader, named channels, metadata keys, and identity context helpers. Auth interceptors are business-owned. |
 | `demo` | `github.com/ISeekFree/AtlasGo/demo` | Local validation app and integration guide. |
 
 ## Integration And Configuration Model
@@ -57,7 +57,11 @@ sdk.Install(engine)
 engine.GET("/demo/me", sdk.RequireAuth(web.Domains("app.demo"), web.Permissions("demo:read")), handler)
 ```
 
-Override `auth.Service` in `web.Options` for production identity/session validation.
+Tokens are JWT. AtlasGo ships the `auth.JWTCodec` crypto but no claim schema: register a `web.ContextLoader` through `web.Options.ContextLoaders` that verifies the token with `auth.JWTCodec` and fills `*web.Context`. Permission checks for `RequireAuth(web.Permissions(...))` go to an optional `web.Options.PermissionChecker`.
+
+## Response Envelope
+
+Successful JSON/text responses are wrapped into `{code:0,msg:"success",data:...}`. Failures use the same shape: authentication failures return HTTP 200 with `common.UnauthorizedCode` (-94), and a recovered panic or a `c.Error(...)` report returns HTTP 200 with `common.SystemErrorCode` (-90), unless the failure carries its own business code. Build the unified error with `common.NewError("msg")` (defaults to -90) or `common.NewErrorCode(code, "msg")` for an explicit code; `common.WrapError` / `common.WrapErrorCode` do the same with a cause. Register `web.Options.ErrorResolvers` to map failures onto your own envelope.
 
 ## WebContext Extension
 
@@ -168,8 +172,11 @@ factory := atlasgrpc.NewChannelFactory(atlasgrpc.ClientOptions{
 	Channels: map[string]atlasgrpc.ChannelOptions{
 		"account-service": {Target: "static://account.internal:19091", Plaintext: true},
 	},
+	UnaryInterceptors: []grpc.UnaryClientInterceptor{yourTokenPropagationInterceptor},
 })
 ```
+
+AtlasGo does not install an auth interceptor: which HTTP header carries the caller token and which metadata key the callee expects are business contracts. Register your own `grpc.UnaryClientInterceptor`/`grpc.StreamClientInterceptor` through `ClientOptions`, and your own `grpc.UnaryServerInterceptor`/`grpc.StreamServerInterceptor` through `grpc.NewServer(...)`; AtlasGo provides the `Metadata*` keys plus `atlasgrpc.MetadataRequest`, `atlasgrpc.WithContext` and `atlasgrpc.ContextFromContext` so the server can reuse the same `web.ContextLoader` as HTTP.
 
 Targets follow gRPC naming syntax. AtlasGo registers `static://host:port` for a fixed single address and makes `static` the default resolver, so a target without a scheme, such as `127.0.0.1:19091` or `account.internal:19091`, is also treated as static. IPv4, domain names, and bracketed IPv6 are supported. The grpc-go built-ins `dns:///service:port`, `unix:///path/to.sock`, and `passthrough:///service` are available by default. AtlasGo also registers the official `xds:///service-name` resolver by default; using it requires an xDS runtime/bootstrap configuration. `${:default}` placeholders are accepted when a config value should always fall back to the default string.
 
@@ -177,7 +184,7 @@ Named channels are lazy: defining `account-service` or `order-service` does not 
 
 The demo includes a real protobuf contract at [demo/proto/demo/v1/demo.proto](demo/proto/demo/v1/demo.proto). Its generated server/client exposes two authenticated unary RPCs:
 
-- `Echo` demonstrates request/response messages and propagated user identity.
-- `CurrentUser` returns the identity resolved by the gRPC server auth interceptor.
+- `Echo` demonstrates request/response messages and the user ID forwarded by the demo's business-layer client interceptor.
+- `CurrentUser` returns the identity resolved by the demo's business-layer gRPC auth interceptor.
 
 Generated Go files are committed under `demo/gen`; the demo no longer maintains a hand-written `grpc.ServiceDesc`.

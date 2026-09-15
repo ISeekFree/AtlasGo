@@ -14,9 +14,6 @@ framework:
     server:
       host: 127.0.0.1
       port: ${GRPC_TEST_PORT:19090}
-      auth:
-        required: true
-        inner-token: internal
     client:
       channels:
         local:
@@ -27,7 +24,7 @@ framework:
 	if err != nil {
 		t.Fatalf("ParseConfig() error = %v", err)
 	}
-	if config.Server.ListenAddress() != "127.0.0.1:19091" || !config.Server.Auth.Required {
+	if config.Server.ListenAddress() != "127.0.0.1:19091" {
 		t.Fatalf("server config = %#v", config.Server)
 	}
 	local := config.Client.Channels["local"]

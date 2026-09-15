@@ -10,7 +10,7 @@ service DemoService {
   // Echo returns the caller identity together with the supplied message.
   rpc Echo(EchoRequest) returns (EchoResponse);
 
-  // CurrentUser returns the identity resolved by the gRPC auth interceptor.
+  // CurrentUser returns the identity resolved by the business-layer gRPC auth interceptor.
   rpc CurrentUser(CurrentUserRequest) returns (CurrentUserResponse);
 }
 

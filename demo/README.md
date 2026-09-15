@@ -26,10 +26,18 @@ Default endpoints:
 - `GET /demo/redis/basic` when Redis config is present
 - `GET /demo/mongo/basic` when MongoDB config is present
 
-Use a demo token:
+The demo authenticates with an HS256 JWT signed by `ATLAS_DEMO_JWT_SECRET`
+(default `atlas-demo-dev-only-jwt-secret-change-me-0001`). The claim names
+`uid`/`domain`/`perms` are the demo's own (`demo/jwt_claims.go`); AtlasGo only
+verifies the signature. Mint a token for the guarded routes:
 
-```text
-_u_=u1;_d_=app.demo;_perms_=demo:read
+```go
+token, _ := auth.NewJWTCodec([]byte(defaultDemoJWTSecret)).Encode(map[string]any{
+    "uid":    "u1",
+    "domain": "app.demo",
+    "perms":  "demo:read",
+    "exp":    time.Now().Add(time.Hour).Unix(),
+})
 ```
 
 ## Web-only integration
@@ -49,7 +57,7 @@ sdk.Install(engine)
 engine.GET("/me", sdk.RequireAuth(web.Domains("app.demo")), handler)
 ```
 
-Override `auth.Service` in `web.Options` to connect the SDK to the real account/session system.
+Register `web.ContextLoader`s in `web.Options` to connect the SDK to the real account/session system.
 
 To add business fields to `WebContext`:
 
@@ -152,18 +160,19 @@ factory := atlasgrpc.NewChannelFactory(atlasgrpc.ClientOptions{
 	Channels: map[string]atlasgrpc.ChannelOptions{
 		"account-service": {Target: "static://account.internal:19091", Plaintext: true},
 	},
+	UnaryInterceptors: []grpc.UnaryClientInterceptor{yourTokenPropagationInterceptor},
 })
 ```
 
 Targets follow gRPC naming syntax. The demo defaults omit the scheme and therefore use AtlasGo's default static resolver; explicit `static://host:port` is equivalent. Static targets accept an IP address or domain name. Kubernetes or DNS discovery uses `dns:///service:port`; Unix sockets use `unix:///path/to.sock`; `xds:///service-name` uses the official xDS resolver and requires an xDS runtime/bootstrap configuration.
 
-Server side uses `atlasgrpc.UnaryServerAuthInterceptor`; client channels resolve the current HTTP token from the original Gin request headers and propagate it by default.
+AtlasGo ships no gRPC auth interceptor in either direction. The demo owns both sides in `grpc_auth_interceptor.go`: `demoUnaryServerAuthInterceptor` is registered with `grpc.NewServer(grpc.ChainUnaryInterceptor(...))`, adapts the call through `atlasgrpc.MetadataRequest`, reuses the same `demoContextLoader` as HTTP, and attaches the result with `atlasgrpc.WithContext`; `demoUnaryClientAuthInterceptor` is passed through `ClientOptions.UnaryInterceptors`, picks the caller token from the demo's own HTTP header list, and writes the metadata the demo server reads.
 
 ### Protobuf contract
 
 The source contract is [proto/demo/v1/demo.proto](proto/demo/v1/demo.proto):
 
-- `DemoService.Echo` returns the message and propagated user ID.
+- `DemoService.Echo` returns the message and the user ID forwarded by the demo's business-layer client interceptor.
 - `DemoService.CurrentUser` returns user ID, domain, and permissions from the gRPC auth context.
 
 Generated message and gRPC code lives under `gen/demo/v1` and is used directly by both the demo server and client. To regenerate after editing the proto:

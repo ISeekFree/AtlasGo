@@ -20,6 +20,15 @@ func (s *SDK) ResponseMiddleware() gin.HandlerFunc {
 		c.Writer = recorder
 		c.Next()
 
+		if len(c.Errors) > 0 && recorder.body.Len() == 0 {
+			c.Writer = recorder.ResponseWriter
+			c.Header("Content-Type", "application/json; charset=utf-8")
+			c.Header("Content-Length", "")
+			c.Status(recorder.Status())
+			_ = json.NewEncoder(c.Writer).Encode(s.resolveErrorResponse(c, c.Errors.Last().Err))
+			return
+		}
+
 		body := recorder.body.Bytes()
 		status := recorder.Status()
 		if !shouldWrapResponse(c, status, body, s.options.Response.NotWrapPrefixes) {

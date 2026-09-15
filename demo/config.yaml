@@ -33,9 +33,8 @@ framework:
     server:
       host: ${ATLAS_DEMO_GRPC_HOST:127.0.0.1}
       port: ${ATLAS_DEMO_GRPC_PORT:19090}
-      auth:
-        required: true
-        inner-token: ${ATLAS_DEMO_GRPC_INNER_TOKEN:}
+      # Inbound auth is business-owned (see grpc_auth_interceptor.go); the demo
+      # reads ATLAS_DEMO_GRPC_AUTH_REQUIRED and ATLAS_DEMO_GRPC_INNER_TOKEN.
     client:
       channels:
         local:

@@ -11,12 +11,12 @@
 
 | Module | Role |
 | --- | --- |
-| `auth` | Shared auth contracts, `Identity`, `Request`, permission checks, and `CookieStyleService`. |
+| `auth` | JWT crypto only: `JWTCodec` and `StripBearer`. Business claim names never appear here. |
 | `common` | SDK error type, common error codes, unified `Response<T>`, and `Paged<T>` payloads. |
-| `web` | Gin middleware for WebContext, extension customizers, auth, response wrapping, and panic/error conversion. |
+| `web` | Gin middleware for WebContext, extension customizers, auth, CORS, response wrapping, and panic/error conversion; also the WebSocket base context (`WebsocketContext`). |
 | `integrations/mongo` | MongoDB YAML loading, multi-cluster/datastore registry, entity routing/indexes, and CRUD. |
 | `integrations/redis` | Redis YAML loading, client/pool option mapping, and key prefix helper. |
-| `integrations/grpc` | gRPC YAML loading, named channels, metadata/auth context, and interceptors. |
+| `integrations/grpc` | gRPC YAML loading, named channels, metadata keys, and context helpers (`WithContext`/`ContextFromContext`). Auth interceptors are business-owned. |
 | `demo` | Combined-config local verification app and consumer integration examples. |
 
 ## Configuration Lifecycle
@@ -35,18 +35,21 @@ The three loaders can read the same project file but remain separate because eac
 
 The common auth boundary follows the Java SDK:
 
+0. `web.CorsMiddleware` runs first (installed by `sdk.Install`): it decorates every response and answers a preflight `OPTIONS` with `204`, so auth and error paths never need their own CORS handling. It is configured through `Options.Cors` (`AllowedOriginPatterns`, `AllowedMethods`, `AllowedHeaders`, `ExposedHeaders`, `AllowCredentials`, `MaxAge`) and disabled with `web.Bool(false)`.
 1. `web.ContextMiddleware` creates a `web.Context` from request headers, locale, remote IP, and query args.
-2. Token preview fields are extracted with the same cookie-style keys as Java: `_u_`, `_d_`, `_s_`, `_exp_`, `_perms_`.
+2. The SDK never previews token claims; `web.Context` user fields only appear after auth (or through a `web.ContextCustomizer`).
 3. Configured `web.ContextCustomizer` functions can add business attributes, such as trace IDs, tenant hints, or routing metadata.
-4. `sdk.RequireAuth(...)` or `Auth.RequiredByDefault` resolves the token from configured request headers and calls `auth.Service.Authenticate`.
+4. `ContextMiddleware` builds a `*web.Context` (optionally via `Options.ContextProvider`) and runs every `Options.ContextLoaders` entry against a transport-neutral `web.Request`. `sdk.RequireAuth(...)` or `Auth.RequiredByDefault` then checks the loaded `Context`: `UID` must be present, the `Domain` must match, and `Permissions` go to `Options.PermissionChecker` (absent ⇒ deny).
 5. Custom `web.Context.Attributes` are copied into `auth.Request.Attributes`.
 6. Domain and permission checks are applied after identity resolution.
 7. Auth failures return HTTP 200 with unified `{code,msg,data}` payloads, matching the Java SDK behavior.
-8. The resolved `web.Context` is stored both in Gin context and `request.Context()` so downstream gRPC clients can propagate identity metadata.
+8. The resolved `web.Context` is stored both in Gin context and `request.Context()` so downstream code, including business gRPC client interceptors, can resolve the caller.
 
 ## Response Model
 
 `web.ResponseMiddleware` wraps normal JSON and text responses into `common.Response[T]` unless the path is excluded, the payload is already a response envelope, the status is non-2xx, or the content is streaming/binary.
+
+Failures use the same envelope. `common.Error` is the unified framework error: `common.NewError("msg")` / `common.WrapError("msg", cause)` default to `common.SystemErrorCode` (-90), while `common.NewErrorCode(code, "msg")` / `common.WrapErrorCode(code, "msg", cause)` carry an explicit business code. `web.Recovery` turns a panic into HTTP 200 with the error's code and message; handler-reported errors (`c.Error(...)`) render through `ResponseMiddleware` when the handler wrote no body. `web.Options.ErrorResolvers` runs before the SDK default, so a business can map any failure onto its own `{code,msg,data}`.
 
 Handlers can also call `web.OK` and `web.Fail` explicitly.
 
@@ -66,18 +69,19 @@ Consumers add these modules only when needed from `github.com/ISeekFree/AtlasGo/
 
 Server side:
 
-- `UnaryServerAuthInterceptor` and `StreamServerAuthInterceptor` read `accessToken`, `authorization`, and optional `grpcToken` metadata.
-- Requests authenticate through the same `auth.Service` contract.
-- Resolved identity is stored in gRPC `context.Context` and read with `UserIDFromContext`, `IdentityFromContext`, or `AuthFromContext`.
+- Auth policy is owned by the business layer in both directions: each service registers its own `grpc.UnaryServerInterceptor`/`grpc.StreamServerInterceptor` via `grpc.NewServer(grpc.ChainUnaryInterceptor(...))`, and each client supplies `UnaryInterceptors`/`StreamInterceptors` through `atlasgrpc.ClientOptions`.
+- AtlasGo exposes only the shared building blocks: the `atlasgrpc.Metadata*` keys, the `atlasgrpc.MetadataRequest` adapter onto `web.Request`, and `WithContext`/`ContextFromContext` to store and read the resolved `*web.Context`.
+- The business interceptor reads `accessToken`, `authorization`, and optional `grpcToken` metadata, parses them through the same `web.ContextLoader` used for HTTP, and attaches the `*web.Context` with `WithContext`.
+- Resolved context is stored in gRPC `context.Context` and read with `ContextFromContext` (or the `UserIDFromContext` convenience).
 
 Client side:
 
 - `LoadConfig` reads the gRPC server listener and multiple named client service groups from `framework.grpc`.
 - `NewChannelFactory` creates named channels from either loaded configuration or explicit programmatic options.
 - Each channel name represents a service group with an independent target, plaintext mode, dial timeout, and inbound message limit. Connections are created only when requested.
-- Client interceptors read the current `web.Context` from `context.Context`, resolve the token from the original HTTP request headers, and forward it as gRPC metadata.
+- The SDK does not install an auth interceptor. The consuming project supplies its own unary/stream client interceptors, decides where the token comes from, and writes the metadata keys its services expect.
 
-This keeps Web and gRPC on one auth contract.
+Web, gRPC and WebSocket therefore share only the `web.Context`, `web.ContextLoader`, `web.ResolveToken`, the `Metadata*` keys, and the context helpers, not a fixed token-transport policy. Each transport has a base context you can use directly or embed: HTTP `web.Context` (Gin context / `request.Context()`), gRPC `atlasgrpc.WithContext` + `atlasgrpc.ContextFromContext`, and WebSocket `web.WebsocketContext` + `web.AttachWebsocketContext`/`web.WebsocketContextFrom` on the connection state.
 
 Resolver targets use `static` by default when no scheme is present. The grpc-go
 built-ins `dns`, `unix`, and `passthrough` remain available for explicit targets,
@@ -90,7 +94,7 @@ The `demo` module validates:
 
 - public Gin routes and response wrapping;
 - route-level auth with domain and permission checks;
-- gRPC server/client auth propagation from WebContext;
+- business-owned gRPC auth in both directions, wired through the demo's own interceptors;
 - combined MongoDB, Redis, and multi-service gRPC YAML loading;
 - generated protobuf `Echo` and `CurrentUser` RPC usage through the configured `local` channel;
 - WebContext customization through `demoTraceId`;

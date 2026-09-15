@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ISeekFree/AtlasGo/auth"
 	"github.com/ISeekFree/AtlasGo/common"
 	demov1 "github.com/ISeekFree/AtlasGo/demo/gen/demo/v1"
 	atlasgrpc "github.com/ISeekFree/AtlasGo/integrations/grpc"
@@ -40,12 +41,17 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 	if config.GRPC != nil {
 		grpcConfig = *config.GRPC
 	}
+	jwtCodec := auth.NewJWTCodec([]byte(env("ATLAS_DEMO_JWT_SECRET", defaultDemoJWTSecret)))
 	listener, err := net.Listen("tcp", grpcConfig.Server.ListenAddress())
 	if err != nil {
 		return nil, nil, err
 	}
 	grpcServer := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(atlasgrpc.UnaryServerAuthInterceptor(grpcConfig.Server.AuthOptions())),
+		grpc.ChainUnaryInterceptor(demoUnaryServerAuthInterceptor(
+			jwtCodec,
+			env("ATLAS_DEMO_GRPC_INNER_TOKEN", ""),
+			envBool("ATLAS_DEMO_GRPC_AUTH_REQUIRED", true),
+		)),
 	)
 	demov1.RegisterDemoServiceServer(grpcServer, demoServiceServer{})
 	go func() {
@@ -66,10 +72,14 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 		local.Target = listener.Addr().String()
 	}
 	clientOptions.Channels["local"] = local
+	clientOptions.UnaryInterceptors = append(clientOptions.UnaryInterceptors,
+		demoUnaryClientAuthInterceptor(demoClientTokenHeaders...))
 	channelFactory := atlasgrpc.NewChannelFactory(clientOptions)
 
 	engine := gin.New()
 	sdk := web.New(web.Options{
+		ContextLoaders:    []web.ContextLoader{demoContextLoader(jwtCodec)},
+		PermissionChecker: demoPermissionChecker{},
 		ContextCustomizers: []web.ContextCustomizer{
 			func(wc *web.Context, c *gin.Context) {
 				traceID := c.GetHeader("x-demo-trace-id")
@@ -102,7 +112,7 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 		client := demoGRPCClient(c, channelFactory)
 		response, err := client.Echo(c.Request.Context(), &demov1.EchoRequest{Message: "ping"})
 		if err != nil {
-			panic(common.WrapError(500, "gRPC Echo failed", err))
+			panic(common.WrapErrorCode(500, "gRPC Echo failed", err))
 		}
 		c.String(http.StatusOK, response.GetMessage())
 	})
@@ -110,7 +120,7 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 		client := demoGRPCClient(c, channelFactory)
 		response, err := client.Echo(c.Request.Context(), &demov1.EchoRequest{Message: c.DefaultQuery("message", "ping")})
 		if err != nil {
-			panic(common.WrapError(500, "gRPC Echo failed", err))
+			panic(common.WrapErrorCode(500, "gRPC Echo failed", err))
 		}
 		c.JSON(http.StatusOK, gin.H{"message": response.GetMessage(), "userId": response.GetUserId()})
 	})
@@ -118,7 +128,7 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 		client := demoGRPCClient(c, channelFactory)
 		response, err := client.CurrentUser(c.Request.Context(), &demov1.CurrentUserRequest{})
 		if err != nil {
-			panic(common.WrapError(500, "gRPC CurrentUser failed", err))
+			panic(common.WrapErrorCode(500, "gRPC CurrentUser failed", err))
 		}
 		c.JSON(http.StatusOK, gin.H{
 			"userId": response.GetUserId(), "domain": response.GetDomain(), "permissions": response.GetPermissions(),
@@ -140,7 +150,7 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 
 			collection, err := clients.mongo.CollectionFor(mongoConnectionTest{})
 			if err != nil {
-				panic(common.WrapError(500, "Mongo entity mapping failed", err))
+				panic(common.WrapErrorCode(500, "Mongo entity mapping failed", err))
 			}
 			id := primitive.NewObjectID()
 			if _, err := collection.InsertOne(ctx, bson.M{
@@ -148,18 +158,18 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 				"name":      "atlas-sdk-demo",
 				"createdAt": time.Now(),
 			}); err != nil {
-				panic(common.WrapError(500, "Mongo insert failed", err))
+				panic(common.WrapErrorCode(500, "Mongo insert failed", err))
 			}
 			var found bson.M
 			if err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&found); err != nil {
-				panic(common.WrapError(500, "Mongo find failed", err))
+				panic(common.WrapErrorCode(500, "Mongo find failed", err))
 			}
 			if _, err := collection.UpdateByID(ctx, id, bson.M{"$set": bson.M{"status": "ok"}}); err != nil {
-				panic(common.WrapError(500, "Mongo update failed", err))
+				panic(common.WrapErrorCode(500, "Mongo update failed", err))
 			}
 			deleted, err := collection.DeleteOne(ctx, bson.M{"_id": id})
 			if err != nil {
-				panic(common.WrapError(500, "Mongo delete failed", err))
+				panic(common.WrapErrorCode(500, "Mongo delete failed", err))
 			}
 			c.JSON(http.StatusOK, gin.H{
 				"id":      id.Hex(),
@@ -179,15 +189,15 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 			key := clients.redisKey.Of("connection-test")
 			value := "atlas-sdk-demo"
 			if err := clients.redis.Set(ctx, key, value, time.Minute).Err(); err != nil {
-				panic(common.WrapError(500, "Redis set failed", err))
+				panic(common.WrapErrorCode(500, "Redis set failed", err))
 			}
 			got, err := clients.redis.Get(ctx, key).Result()
 			if err != nil {
-				panic(common.WrapError(500, "Redis get failed", err))
+				panic(common.WrapErrorCode(500, "Redis get failed", err))
 			}
 			deleted, err := clients.redis.Del(ctx, key).Result()
 			if err != nil {
-				panic(common.WrapError(500, "Redis del failed", err))
+				panic(common.WrapErrorCode(500, "Redis del failed", err))
 			}
 			c.JSON(http.StatusOK, gin.H{"key": key, "value": got, "deleted": deleted})
 		})
@@ -218,7 +228,7 @@ func newDemoApp(ctx context.Context, config Config) (*gin.Engine, func(context.C
 func demoGRPCClient(c *gin.Context, channelFactory *atlasgrpc.ChannelFactory) demov1.DemoServiceClient {
 	conn, err := channelFactory.Channel(c.Request.Context(), "local")
 	if err != nil {
-		panic(common.WrapError(500, "gRPC channel failed", err))
+		panic(common.WrapErrorCode(500, "gRPC channel failed", err))
 	}
 	return demov1.NewDemoServiceClient(conn)
 }
@@ -227,7 +237,6 @@ func defaultDemoGRPCConfig() atlasgrpc.Config {
 	return atlasgrpc.Config{
 		Server: atlasgrpc.ServerOptions{
 			Addr: "127.0.0.1:0",
-			Auth: atlasgrpc.ServerAuthConfig{Required: true},
 		},
 		Client: atlasgrpc.ClientOptions{
 			Channels: map[string]atlasgrpc.ChannelOptions{

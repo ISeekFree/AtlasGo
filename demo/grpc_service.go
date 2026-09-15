@@ -12,18 +12,29 @@ type demoServiceServer struct {
 }
 
 func (demoServiceServer) Echo(ctx context.Context, request *demov1.EchoRequest) (*demov1.EchoResponse, error) {
-	identity, _ := atlasgrpc.IdentityFromContext(ctx)
+	uid := webContextUID(ctx)
 	return &demov1.EchoResponse{
-		Message: "echo:" + identity.UserID + ":" + request.GetMessage(),
-		UserId:  identity.UserID,
+		Message: "echo:" + uid + ":" + request.GetMessage(),
+		UserId:  uid,
 	}, nil
 }
 
 func (demoServiceServer) CurrentUser(ctx context.Context, _ *demov1.CurrentUserRequest) (*demov1.CurrentUserResponse, error) {
-	identity, _ := atlasgrpc.IdentityFromContext(ctx)
+	wc, _ := atlasgrpc.ContextFromContext(ctx)
+	if wc == nil {
+		return &demov1.CurrentUserResponse{}, nil
+	}
 	return &demov1.CurrentUserResponse{
-		UserId:      identity.UserID,
-		Domain:      identity.Domain,
-		Permissions: append([]string(nil), identity.Permissions...),
+		UserId:      wc.UID,
+		Domain:      wc.Domain,
+		Permissions: demoGrantedPermissions(wc),
 	}, nil
+}
+
+func webContextUID(ctx context.Context) string {
+	wc, ok := atlasgrpc.ContextFromContext(ctx)
+	if !ok || wc == nil {
+		return ""
+	}
+	return wc.UID
 }

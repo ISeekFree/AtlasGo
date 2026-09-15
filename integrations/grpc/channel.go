@@ -9,13 +9,18 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// ClientOptions configures the named client channels and the interceptors
+// mounted on them.
+//
+// AtlasGo deliberately does not install an auth interceptor. Which HTTP header
+// carries the caller token and which gRPC metadata key a downstream service
+// expects are business contracts, so the consuming project supplies its own
+// grpc.UnaryClientInterceptor / grpc.StreamClientInterceptor values and reads
+// whatever token source it uses.
 type ClientOptions struct {
-	Channels               map[string]ChannelOptions      `yaml:"channels"`
-	DisableAuthPropagation bool                           `yaml:"disable-auth-propagation"`
-	TokenHeaders           []string                       `yaml:"token-headers"`
-	AdminTokenHeaders      []string                       `yaml:"admin-token-headers"`
-	UnaryInterceptors      []grpc.UnaryClientInterceptor  `yaml:"-"`
-	StreamInterceptors     []grpc.StreamClientInterceptor `yaml:"-"`
+	Channels           map[string]ChannelOptions      `yaml:"channels"`
+	UnaryInterceptors  []grpc.UnaryClientInterceptor  `yaml:"-"`
+	StreamInterceptors []grpc.StreamClientInterceptor `yaml:"-"`
 }
 
 type ChannelOptions struct {
@@ -51,14 +56,6 @@ func (f *ChannelFactory) Channel(ctx context.Context, name string) (*grpc.Client
 	}
 	unaryInterceptors := append([]grpc.UnaryClientInterceptor{}, f.options.UnaryInterceptors...)
 	streamInterceptors := append([]grpc.StreamClientInterceptor{}, f.options.StreamInterceptors...)
-	if !f.options.DisableAuthPropagation {
-		authOptions := ClientAuthOptions{
-			TokenHeaders:      f.options.TokenHeaders,
-			AdminTokenHeaders: f.options.AdminTokenHeaders,
-		}
-		unaryInterceptors = append([]grpc.UnaryClientInterceptor{UnaryClientAuthInterceptor(authOptions)}, unaryInterceptors...)
-		streamInterceptors = append([]grpc.StreamClientInterceptor{StreamClientAuthInterceptor(authOptions)}, streamInterceptors...)
-	}
 	if len(unaryInterceptors) > 0 {
 		dialOptions = append(dialOptions, grpc.WithChainUnaryInterceptor(unaryInterceptors...))
 	}

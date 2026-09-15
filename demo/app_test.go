@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/ISeekFree/AtlasGo/auth"
 	"github.com/gin-gonic/gin"
 )
 
@@ -28,7 +30,15 @@ func TestDemoAppValidatesWebAndGRPCAuth(t *testing.T) {
 		t.Fatalf("missing token code = %d, want -94", missing.Code)
 	}
 
-	token := "_u_=u1;_d_=app.demo;_perms_=demo:read"
+	token, err := auth.NewJWTCodec([]byte(defaultDemoJWTSecret)).Encode(map[string]any{
+		"uid":    "u1",
+		"domain": "app.demo",
+		"perms":  "demo:read",
+		"exp":    float64(time.Now().Add(time.Hour).Unix()),
+	})
+	if err != nil {
+		t.Fatalf("Encode() error = %v", err)
+	}
 	me := request(engine, "/demo/me", token)
 	if me.Code != 0 {
 		t.Fatalf("me code = %d msg = %s", me.Code, me.Msg)

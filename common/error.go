@@ -5,19 +5,42 @@ import (
 	"fmt"
 )
 
-const UnauthorizedCode = -94
+const (
+	// SystemErrorCode marks a failure that escaped without a business code, for
+	// example a recovered panic. It is also the default code of NewError and
+	// WrapError.
+	SystemErrorCode = -90
+	// UnauthorizedCode marks a missing, invalid or expired credential.
+	UnauthorizedCode = -94
+)
 
+// Error is the unified framework error. HTTP, gRPC and WebSocket all render it
+// as the same {code,msg,data} envelope, so a handler only needs to return or
+// panic with it.
 type Error struct {
 	Code    int
 	Message string
 	Cause   error
 }
 
-func NewError(code int, message string) *Error {
+// NewError builds the unified error with the default code (SystemErrorCode,
+// -90). Use NewErrorCode when the caller wants its own business code.
+func NewError(message string) *Error {
+	return &Error{Code: SystemErrorCode, Message: message}
+}
+
+// NewErrorCode builds the unified error with an explicit business code.
+func NewErrorCode(code int, message string) *Error {
 	return &Error{Code: code, Message: message}
 }
 
-func WrapError(code int, message string, cause error) *Error {
+// WrapError builds the unified error with a cause and the default code (-90).
+func WrapError(message string, cause error) *Error {
+	return &Error{Code: SystemErrorCode, Message: message, Cause: cause}
+}
+
+// WrapErrorCode builds the unified error with an explicit code and a cause.
+func WrapErrorCode(code int, message string, cause error) *Error {
 	return &Error{Code: code, Message: message, Cause: cause}
 }
 
@@ -25,7 +48,7 @@ func Unauthorized(message string) *Error {
 	if message == "" {
 		message = "Unauthorized"
 	}
-	return NewError(UnauthorizedCode, message)
+	return NewErrorCode(UnauthorizedCode, message)
 }
 
 func (e *Error) Error() string {

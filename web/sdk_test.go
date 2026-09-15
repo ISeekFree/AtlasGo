@@ -1,20 +1,25 @@
 package web
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/ISeekFree/AtlasGo/auth"
+	"github.com/ISeekFree/AtlasGo/common"
 	"github.com/gin-gonic/gin"
 )
 
 func TestSDKWrapsAndAuthenticatesGinRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	codec := auth.NewJWTCodec([]byte("atlas-web-test-jwt-secret-0001-000000"))
 	engine := gin.New()
-	sdk := New()
+	sdk := New(Options{
+		ContextLoaders:    []ContextLoader{testContextLoader(codec)},
+		PermissionChecker: testPermissionChecker{},
+	})
 	sdk.Install(engine)
 
 	engine.GET("/demo/public", func(c *gin.Context) {
@@ -36,7 +41,16 @@ func TestSDKWrapsAndAuthenticatesGinRoutes(t *testing.T) {
 		t.Fatalf("missing token code = %d, want -94", missing.Code)
 	}
 
-	authorized := perform(engine, http.MethodGet, "/demo/me", "_u_=u1;_d_=app.demo;_perms_=demo:read")
+	token, err := codec.Encode(map[string]any{
+		"uid":    "u1",
+		"domain": "app.demo",
+		"perms":  "demo:read",
+		"exp":    float64(time.Now().Add(time.Hour).Unix()),
+	})
+	if err != nil {
+		t.Fatalf("Encode() error = %v", err)
+	}
+	authorized := perform(engine, http.MethodGet, "/demo/me", token)
 	if authorized.Code != 0 {
 		t.Fatalf("authorized code = %d, msg = %s", authorized.Code, authorized.Msg)
 	}
@@ -46,12 +60,17 @@ func TestSDKWrapsAndAuthenticatesGinRoutes(t *testing.T) {
 	}
 }
 
-func TestContextCustomizerAddsAuthRequestAttributes(t *testing.T) {
+func TestContextCustomizerAddsContextAttributes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	authService := &capturingAuthService{}
 	engine := gin.New()
 	sdk := New(Options{
-		AuthService: authService,
+		ContextLoaders: []ContextLoader{
+			func(wc *Context, request Request) {
+				if request.Header("token") != "" {
+					wc.UID = "u1"
+				}
+			},
+		},
 		ContextCustomizers: []ContextCustomizer{
 			func(wc *Context, c *gin.Context) {
 				wc.SetAttribute("demoTraceId", c.GetHeader("x-demo-trace-id"))
@@ -65,7 +84,7 @@ func TestContextCustomizerAddsAuthRequestAttributes(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/demo/custom", nil)
-	req.Header.Set("token", "_u_=u1")
+	req.Header.Set("token", "any-token")
 	req.Header.Set("x-demo-trace-id", "trace-1")
 	rec := httptest.NewRecorder()
 	engine.ServeHTTP(rec, req)
@@ -77,8 +96,95 @@ func TestContextCustomizerAddsAuthRequestAttributes(t *testing.T) {
 	if out.Code != 0 {
 		t.Fatalf("code = %d msg = %s", out.Code, out.Msg)
 	}
-	if authService.request.Attributes["demoTraceId"] != "trace-1" {
-		t.Fatalf("auth attribute demoTraceId = %#v", authService.request.Attributes["demoTraceId"])
+	data := out.Data.(map[string]any)
+	if data["traceId"] != "trace-1" {
+		t.Fatalf("unexpected trace attribute: %#v", data)
+	}
+}
+
+func TestPermissionCheckerFailsClosedWhenAbsent(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	codec := auth.NewJWTCodec([]byte("atlas-web-test-jwt-secret-0001-000000"))
+	engine := gin.New()
+	sdk := New(Options{ContextLoaders: []ContextLoader{testContextLoader(codec)}})
+	sdk.Install(engine)
+	engine.GET("/demo/me", sdk.RequireAuth(Permissions("demo:read")), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"uid": MustCurrent(c).UID})
+	})
+
+	token, err := codec.Encode(map[string]any{
+		"uid":   "u1",
+		"perms": "demo:read",
+		"exp":   float64(time.Now().Add(time.Hour).Unix()),
+	})
+	if err != nil {
+		t.Fatalf("Encode() error = %v", err)
+	}
+	out := perform(engine, http.MethodGet, "/demo/me", token)
+	if out.Code != -94 {
+		t.Fatalf("permission without checker code = %d, want -94", out.Code)
+	}
+}
+
+func TestRecoveryReturnsTheUnifiedEnvelope(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	sdk := New()
+	sdk.Install(engine)
+	engine.GET("/demo/panic", func(c *gin.Context) {
+		panic("boom")
+	})
+	engine.GET("/demo/error", func(c *gin.Context) {
+		panic(common.NewErrorCode(-91, "downstream failed"))
+	})
+
+	panicResponse := perform(engine, http.MethodGet, "/demo/panic", "")
+	if panicResponse.Code != common.SystemErrorCode || panicResponse.Msg != "boom" {
+		t.Fatalf("panic envelope = %#v", panicResponse)
+	}
+
+	coded := perform(engine, http.MethodGet, "/demo/error", "")
+	if coded.Code != -91 || coded.Msg != "downstream failed" {
+		t.Fatalf("coded envelope = %#v", coded)
+	}
+}
+
+func TestErrorResolversCustomiseTheEnvelope(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	sdk := New(Options{
+		ErrorResolvers: []ErrorResolver{
+			func(_ *gin.Context, failure any) (common.Response[any], bool) {
+				if message, ok := failure.(string); ok && message == "boom" {
+					return common.Failure(-77, "handled by business"), true
+				}
+				return common.Response[any]{}, false
+			},
+		},
+	})
+	sdk.Install(engine)
+	engine.GET("/demo/panic", func(c *gin.Context) {
+		panic("boom")
+	})
+
+	out := perform(engine, http.MethodGet, "/demo/panic", "")
+	if out.Code != -77 || out.Msg != "handled by business" {
+		t.Fatalf("resolved envelope = %#v", out)
+	}
+}
+
+func TestReportedErrorsUseTheUnifiedEnvelope(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	sdk := New()
+	sdk.Install(engine)
+	engine.GET("/demo/reported", func(c *gin.Context) {
+		_ = c.Error(common.NewErrorCode(-92, "reported failure"))
+	})
+
+	out := perform(engine, http.MethodGet, "/demo/reported", "")
+	if out.Code != -92 || out.Msg != "reported failure" {
+		t.Fatalf("reported envelope = %#v", out)
 	}
 }
 
@@ -102,11 +208,37 @@ type testResponse struct {
 	Data any    `json:"data"`
 }
 
-type capturingAuthService struct {
-	request auth.Request
+func testContextLoader(codec *auth.JWTCodec) ContextLoader {
+	return func(wc *Context, request Request) {
+		token := ResolveToken(request, nil, []string{"token", "Authorization", "accessToken"})
+		if !token.Present() {
+			return
+		}
+		claims, err := codec.Verify(token.Value)
+		if err != nil {
+			return
+		}
+		if uid, ok := claims["uid"].(string); ok {
+			wc.UID = uid
+		}
+		if domain, ok := claims["domain"].(string); ok {
+			wc.Domain = domain
+		}
+		if perms, ok := claims["perms"].(string); ok {
+			wc.SetAttribute("perms", perms)
+		}
+	}
 }
 
-func (s *capturingAuthService) Authenticate(_ context.Context, request auth.Request) (auth.Identity, error) {
-	s.request = request
-	return auth.Identity{UserID: "u1", Domain: request.Domain}, nil
+type testPermissionChecker struct{}
+
+func (testPermissionChecker) IsPermitted(wc *Context, permissions []string) bool {
+	granted, _ := wc.GetAttribute("perms")
+	text, _ := granted.(string)
+	for _, permission := range permissions {
+		if permission != text {
+			return false
+		}
+	}
+	return true
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,30 +16,57 @@ const (
 	ReqStartKey   = "atlas.web.request_started_at"
 )
 
-type Context struct {
-	UID         string
-	IP          string
-	OS          string
-	OSVersion   string
-	Language    string
-	Area        string
-	Domain      string
-	Session     string
-	ExpiredAt   *time.Time
-	AppVersion  string
-	AppTag      string
-	PackageName string
-	DeviceID    string
-	SimplyArgs  string
-	Attributes  map[string]any
-	Request     *http.Request
+// Request is the transport-neutral view of an incoming call. HTTP, gRPC and
+// WebSocket adapt to it, so a single ContextLoader parses the token for every
+// transport.
+type Request interface {
+	Header(name string) string
+	Parameter(name string) string
+	RemoteIP() string
+	Method() string
+	Path() string
 }
+
+// Context carries the per-request state shared by HTTP, gRPC and WebSocket.
+// It is intentionally open for extension: applications either add fields to
+// their own wrapper or, more idiomatically in Go, store them through
+// SetAttribute. Nothing here is auth-specific; token parsing lives in a
+// ContextLoader.
+type Context struct {
+	UID        string
+	IP         string
+	OS         string
+	OSVersion  string
+	Language   string
+	Area       string
+	Domain     string
+	Session    string
+	ExpiredAt  *time.Time
+	AppVersion string
+	AppTag     string
+	SimplyArgs string
+	Attributes map[string]any
+	Request    *http.Request
+}
+
+// ContextProvider allocates the per-request Context, letting an application
+// pre-seed business attributes before the loaders run.
+type ContextProvider func(Request) *Context
+
+// ContextLoader fills token-derived fields (uid, domain, permissions, ...).
+// Loaders are transport-neutral and reused by HTTP, gRPC and WebSocket.
+type ContextLoader func(*Context, Request)
 
 type ContextCustomizer func(*Context, *gin.Context)
 
 type AuthToken struct {
 	Value string
 	Admin bool
+}
+
+// Present reports whether a non-blank token was found.
+func (t AuthToken) Present() bool {
+	return strings.TrimSpace(t.Value) != ""
 }
 
 func (wc *Context) GetAttribute(key string) (any, bool) {
@@ -68,37 +94,6 @@ func (wc *Context) SetAttribute(key string, value any) {
 		return
 	}
 	wc.Attributes[key] = value
-}
-
-func (wc *Context) ToAuthRequest(token AuthToken) auth.Request {
-	attributes := make(map[string]any, len(wc.Attributes)+1)
-	for key, value := range wc.Attributes {
-		attributes[key] = value
-	}
-	if wc.DeviceID != "" {
-		attributes["deviceId"] = wc.DeviceID
-	}
-	return auth.Request{
-		Token:      token.Value,
-		Domain:     wc.Domain,
-		AppTag:     wc.AppTag,
-		IP:         wc.IP,
-		Admin:      token.Admin,
-		Attributes: attributes,
-	}
-}
-
-func (wc *Context) SetIdentity(identity auth.Identity) {
-	wc.UID = identity.UserID
-	if identity.Domain != "" {
-		wc.Domain = identity.Domain
-	}
-	if identity.SessionID != "" {
-		wc.Session = identity.SessionID
-	}
-	if identity.ExpiresAt != nil {
-		wc.ExpiredAt = identity.ExpiresAt
-	}
 }
 
 func (wc *Context) ServerName() string {
@@ -155,25 +150,97 @@ func ContextFromContext(ctx context.Context) (*Context, bool) {
 	return wc, ok
 }
 
+// HTTPRequest adapts *http.Request onto the transport-neutral Request.
+type HTTPRequest struct {
+	R *http.Request
+}
+
+func (r HTTPRequest) Header(name string) string {
+	if r.R == nil {
+		return ""
+	}
+	return r.R.Header.Get(name)
+}
+
+func (r HTTPRequest) Parameter(name string) string {
+	if r.R == nil {
+		return ""
+	}
+	return r.R.URL.Query().Get(name)
+}
+
+func (r HTTPRequest) RemoteIP() string {
+	if r.R == nil {
+		return ""
+	}
+	return resolveIP(r.R)
+}
+
+func (r HTTPRequest) Method() string {
+	if r.R == nil {
+		return ""
+	}
+	return r.R.Method
+}
+
+func (r HTTPRequest) Path() string {
+	if r.R == nil {
+		return ""
+	}
+	return r.R.URL.Path
+}
+
+// ResolveToken is the single token-lookup entry point shared by HTTP, gRPC and
+// WebSocket. Admin headers are matched first; an optional "Bearer " prefix is
+// always stripped.
+func ResolveToken(request Request, adminHeaders, tokenHeaders []string) AuthToken {
+	if request == nil {
+		return AuthToken{}
+	}
+	for _, name := range adminHeaders {
+		if token := strings.TrimSpace(request.Header(name)); token != "" {
+			return AuthToken{Value: auth.StripBearer(token), Admin: true}
+		}
+	}
+	for _, name := range tokenHeaders {
+		if token := strings.TrimSpace(request.Header(name)); token != "" {
+			return AuthToken{Value: auth.StripBearer(token)}
+		}
+	}
+	return AuthToken{}
+}
+
+func (s *SDK) ResolveAuthToken(request Request) AuthToken {
+	return ResolveToken(request, s.options.Auth.AdminTokenHeaders, s.options.Auth.TokenHeaders)
+}
+
 func (s *SDK) createContext(c *gin.Context) *Context {
 	if wc, ok := Current(c); ok {
 		return wc
 	}
-
-	wc := &Context{
-		Request:     c.Request,
-		Attributes:  map[string]any{},
-		AppTag:      header(c.Request, "appTag"),
-		OS:          header(c.Request, "os"),
-		OSVersion:   header(c.Request, "osv"),
-		AppVersion:  header(c.Request, "av"),
-		PackageName: header(c.Request, "packageName"),
-		DeviceID:    firstNonBlank(header(c.Request, "deviceId"), header(c.Request, "udid")),
-		IP:          resolveIP(c.Request),
-		SimplyArgs:  c.Request.URL.RawQuery,
+	request := HTTPRequest{R: c.Request}
+	wc := &Context{Request: c.Request, Attributes: map[string]any{}}
+	if s.options.ContextProvider != nil {
+		if provided := s.options.ContextProvider(request); provided != nil {
+			wc = provided
+		}
 	}
+	if wc.Attributes == nil {
+		wc.Attributes = map[string]any{}
+	}
+	wc.Request = c.Request
+	wc.AppTag = header(c.Request, "appTag")
+	wc.OS = header(c.Request, "os")
+	wc.OSVersion = header(c.Request, "osv")
+	wc.AppVersion = header(c.Request, "av")
+	wc.IP = request.RemoteIP()
+	wc.SimplyArgs = c.Request.URL.RawQuery
 	normalizeLocale(wc, c.Request)
-	s.previewTokenClaims(wc, c.Request)
+	for _, loader := range s.options.ContextLoaders {
+		if loader != nil {
+			loader(wc, request)
+		}
+	}
 	for _, customizer := range s.options.ContextCustomizers {
 		if customizer != nil {
 			customizer(wc, c)
@@ -183,52 +250,6 @@ func (s *SDK) createContext(c *gin.Context) *Context {
 	c.Set(GinContextKey, wc)
 	c.Request = c.Request.WithContext(WithContext(c.Request.Context(), wc))
 	return wc
-}
-
-func (s *SDK) CreateAuthRequest(wc *Context, request *http.Request) auth.Request {
-	if wc == nil {
-		wc = &Context{Request: request, Attributes: map[string]any{}}
-	}
-	return wc.ToAuthRequest(s.ResolveAuthToken(request))
-}
-
-func (s *SDK) ResolveAuthToken(request *http.Request) AuthToken {
-	for _, name := range s.options.Auth.AdminTokenHeaders {
-		token := header(request, name)
-		if strings.TrimSpace(token) != "" {
-			return AuthToken{Value: token, Admin: true}
-		}
-	}
-	for _, name := range s.options.Auth.TokenHeaders {
-		token := header(request, name)
-		if strings.TrimSpace(token) != "" {
-			return AuthToken{Value: token}
-		}
-	}
-	return AuthToken{}
-}
-
-func (s *SDK) previewTokenClaims(wc *Context, request *http.Request) {
-	token := s.ResolveAuthToken(request)
-	if token.Value != "" {
-		fillFromToken(wc, token.Value)
-	}
-}
-
-func fillFromToken(wc *Context, token string) {
-	values := auth.ParseCookieStyleToken(auth.StripBearer(token))
-	wc.UID = firstNonBlank(values[auth.UID], values["uid"], values["userId"], values["sub"])
-	wc.Domain = firstNonBlank(values[auth.Domain], values["domain"])
-	wc.Session = firstNonBlank(values[auth.Session], values["session"], values["sid"])
-	if expires := firstNonBlank(values[auth.ExpiresAt], values["exp"], values["expiresAt"]); expires != "" {
-		if raw, err := strconv.ParseInt(expires, 10, 64); err == nil {
-			if raw < 10_000_000_000 {
-				raw *= 1000
-			}
-			parsed := time.UnixMilli(raw)
-			wc.ExpiredAt = &parsed
-		}
-	}
 }
 
 func normalizeLocale(wc *Context, request *http.Request) {
@@ -249,6 +270,9 @@ func normalizeLocale(wc *Context, request *http.Request) {
 }
 
 func resolveIP(request *http.Request) string {
+	if request == nil {
+		return ""
+	}
 	ip := firstNonBlank(
 		header(request, "x-forwarded-for"),
 		header(request, "x-real-ip"),
@@ -267,6 +291,9 @@ func resolveIP(request *http.Request) string {
 }
 
 func header(request *http.Request, name string) string {
+	if request == nil {
+		return ""
+	}
 	return request.Header.Get(name)
 }
 

@@ -62,6 +62,18 @@ func envInt(key string, fallback int) int {
 	return parsed
 }
 
+func envBool(key string, fallback bool) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
 func shortTimeout() time.Duration {
 	return 3 * time.Second
 }

@@ -19,15 +19,9 @@ type Config struct {
 }
 
 type ServerOptions struct {
-	Addr string           `yaml:"addr"`
-	Host string           `yaml:"host"`
-	Port int              `yaml:"port"`
-	Auth ServerAuthConfig `yaml:"auth"`
-}
-
-type ServerAuthConfig struct {
-	Required   bool   `yaml:"required"`
-	InnerToken string `yaml:"inner-token"`
+	Addr string `yaml:"addr"`
+	Host string `yaml:"host"`
+	Port int    `yaml:"port"`
 }
 
 func (s ServerOptions) ListenAddress() string {
@@ -39,10 +33,6 @@ func (s ServerOptions) ListenAddress() string {
 		host = "127.0.0.1"
 	}
 	return net.JoinHostPort(host, strconv.Itoa(s.Port))
-}
-
-func (s ServerOptions) AuthOptions() ServerAuthOptions {
-	return ServerAuthOptions{Required: s.Auth.Required, InnerToken: s.Auth.InnerToken}
 }
 
 // LoadConfig reads the framework.grpc section from a YAML project configuration.

@@ -3,7 +3,7 @@ package atlasgrpc
 import (
 	"context"
 
-	"github.com/ISeekFree/AtlasGo/auth"
+	"github.com/ISeekFree/AtlasGo/web"
 )
 
 const (
@@ -14,35 +14,30 @@ const (
 	MetadataRealIP        = "x-real-ip"
 )
 
-type authContextKey struct{}
+type grpcContextKey struct{}
 
-type AuthContext struct {
-	Identity auth.Identity
-	UserID   string
-	Domain   string
-	IP       string
+// WithContext carries the shared web.Context across a gRPC call. A server
+// interceptor loads the context (typically with the same loaders used for
+// HTTP/WebSocket) and attaches it here; the service reads it back with
+// ContextFromContext.
+//
+// The gRPC base context is web.Context: use it directly, or embed it in your
+// own struct (type NexusContext struct { web.Context; ... }) so HTTP, gRPC and
+// WebSocket all share one context type.
+func WithContext(ctx context.Context, wc *web.Context) context.Context {
+	return context.WithValue(ctx, grpcContextKey{}, wc)
 }
 
-func WithIdentity(ctx context.Context, identity auth.Identity, ip string) context.Context {
-	return context.WithValue(ctx, authContextKey{}, AuthContext{
-		Identity: identity,
-		UserID:   identity.UserID,
-		Domain:   identity.Domain,
-		IP:       ip,
-	})
-}
-
-func AuthFromContext(ctx context.Context) (AuthContext, bool) {
-	value, ok := ctx.Value(authContextKey{}).(AuthContext)
-	return value, ok
-}
-
-func IdentityFromContext(ctx context.Context) (auth.Identity, bool) {
-	value, ok := AuthFromContext(ctx)
-	return value.Identity, ok
+// ContextFromContext returns the context attached to a gRPC call, if any.
+func ContextFromContext(ctx context.Context) (*web.Context, bool) {
+	wc, ok := ctx.Value(grpcContextKey{}).(*web.Context)
+	return wc, ok
 }
 
 func UserIDFromContext(ctx context.Context) (string, bool) {
-	value, ok := AuthFromContext(ctx)
-	return value.UserID, ok
+	wc, ok := ContextFromContext(ctx)
+	if !ok || wc == nil {
+		return "", false
+	}
+	return wc.UID, true
 }

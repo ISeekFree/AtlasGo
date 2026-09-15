@@ -32,7 +32,7 @@ const (
 type DemoServiceClient interface {
 	// Echo returns the caller identity together with the supplied message.
 	Echo(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoResponse, error)
-	// CurrentUser returns the identity resolved by the gRPC auth interceptor.
+	// CurrentUser returns the identity resolved by the business-layer gRPC auth interceptor.
 	CurrentUser(ctx context.Context, in *CurrentUserRequest, opts ...grpc.CallOption) (*CurrentUserResponse, error)
 }
 
@@ -73,7 +73,7 @@ func (c *demoServiceClient) CurrentUser(ctx context.Context, in *CurrentUserRequ
 type DemoServiceServer interface {
 	// Echo returns the caller identity together with the supplied message.
 	Echo(context.Context, *EchoRequest) (*EchoResponse, error)
-	// CurrentUser returns the identity resolved by the gRPC auth interceptor.
+	// CurrentUser returns the identity resolved by the business-layer gRPC auth interceptor.
 	CurrentUser(context.Context, *CurrentUserRequest) (*CurrentUserResponse, error)
 	mustEmbedUnimplementedDemoServiceServer()
 }
